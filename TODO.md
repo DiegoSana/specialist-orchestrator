@@ -134,9 +134,15 @@ backlog crudo para retomar con `orchestrate-feature` (los tres son potencialment
 Sesión cerrada con todo lo chico resuelto y mergeado. Lo que queda son ítems que piden decisión o
 plan antes de tocar código; orden sugerido (los detalles están en cada ítem, buscar por el título):
 
-1. **Opt-out de WhatsApp visible en el perfil del usuario** (Backend → "Mostrar el estado de
-   opt-out al usuario en su propio perfil"). Cross-repo `specialist-be` + `specialist-fe`; el más
-   acotado. Definir junto con "cómo se le avisa al usuario que quedó bloqueado".
+1. ~~**Opt-out de WhatsApp visible en el perfil del usuario**~~ **Resuelto 2026-09-23** (sesión de
+   orquestador, rama `feat/whatsapp-optout-self-service` en ambos repos): `specialist-be`
+   [#73](https://github.com/DiegoSana/specialist-be/pull/73), mergeado — `UserProfileResponseDto`
+   expone `whatsappOptedOut`/`whatsappOptedOutAt`; nuevo `POST /users/me/whatsapp-reactivate`
+   (self-service, unidireccional, reutiliza `setWhatsAppOptedOut`/`UserWhatsAppReactivatedEvent` y
+   el email ya existente). `specialist-fe` [#30](https://github.com/DiegoSana/specialist-fe/pull/30),
+   mergeado — tarjeta en `profile/page.tsx` (mismo patrón visual que verificación de teléfono/email)
+   con botón "Reactivar". Pendiente: click-through manual con un usuario opted-out real (no se hizo
+   en esta sesión, solo build/type-check/tests).
 2. ~~**Estado `ASIGNADO` en Request**~~ — descartado 2026-09-23, ítem previo al rediseño de estados
    (ya cubierto por el modelo de 15 estados, ver Backend).
 3. **Auditoría de usuarios y perfiles + flujos de estado** (Backend → "Revisar el diseño de
@@ -461,6 +467,8 @@ en el ADR — no se duplica acá. Pendientes encontrados probando el resultado: 
 | #23 | FE | feat: dev-login dropdown covering all seeded users |
 | #69 | BE | fix: restore serviceProviderId on public professional search results |
 | #24 | FE | feat: open the specialist profile popup from interested-specialists |
+| #73 | BE | feat: self-service WhatsApp opt-out reactivation from own profile |
+| #30 | FE | feat: show WhatsApp opt-out status + reactivate button on profile page |
 
 ### 🟡 Pendiente Merge
 
@@ -1344,11 +1352,9 @@ model Company {
     si hace falta un estado/flag dedicado en el request en sí (más allá del `RequestAttentionFlag`
     que ya existe) o alcanza con eso.
 
-- [ ] **Mostrar el estado de opt-out al usuario en su propio perfil** (2026-09-18): hoy
-  `whatsappOptedOut` solo es visible/accionable desde el admin (ver bullet anterior); falta
-  mostrárselo al usuario en su perfil (ej. "No estás recibiendo mensajes por WhatsApp") y, lo más
-  probable, una forma de reactivarlo él mismo. Definir junto con el punto de arriba sobre cómo se
-  le avisa al usuario que quedó bloqueado.
+- [x] ~~**Mostrar el estado de opt-out al usuario en su propio perfil**~~ **Resuelto 2026-09-23**
+  — ver detalle en "🆕 Pendientes del rediseño de estados" / "▶️ Por dónde retomar" al principio de
+  este archivo (`specialist-be` #73, `specialist-fe` #30, ambos mergeados).
 
 - [x] ~~**Revisar el flujo de estados de `Request`**: evaluar agregar un estado `ASIGNADO` entre
   `PENDING` y `ACCEPTED`.~~ **Descartado 2026-09-23**: ítem escrito contra el modelo viejo de 5
