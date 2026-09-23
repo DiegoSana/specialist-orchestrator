@@ -1,7 +1,7 @@
 # 📋 Specialist — Todo & Roadmap (global)
 
-> Última actualización: 2026-09-23 (agregados 3 pendientes nuevos: bloqueo de multi-perfil MVP,
-> navegación sin perfil en social login, mensajes de fotos/buenas prácticas en nueva solicitud)
+> Última actualización: 2026-09-23 (agregado pendiente: permisos de imágenes/archivos — el admin
+> recibe "access denied" al ver archivos de una solicitud que sí son visibles desde el request view)
 
 Este archivo vive en `/var/www/specialist/` (el directorio padre, no es un repo git) y es el
 **único** TODO/roadmap del proyecto desde 2026-09-16. Antes había uno por repo:
@@ -128,6 +128,13 @@ backlog crudo para retomar con `orchestrate-feature` (los tres son potencialment
    (evaluar un modal pre-guardado/pre-save como una opción, no la única). Además, agregar en esa
    misma pantalla una breve descripción de cuáles son las mejores prácticas para crear una
    solicitud (qué información conviene incluir para conseguir mejores respuestas).
+
+4. **[BE, bug] Permisos de imágenes/archivos: el admin recibe "access denied".** Un usuario con
+   acceso a la vista de una solicitud (request view) puede ver sus archivos/imágenes
+   correctamente, pero desde `specialist-admin` el mismo archivo da "access denied" — el admin
+   debería poder ver cualquier archivo de cualquier solicitud. Revisar el endpoint/lógica que
+   sirve esos archivos (probablemente un check de ownership que no contempla el rol admin, similar
+   al patrón `canBeViewedBy`/`AuthContext` ya usado en otros módulos).
 
 ## ▶️ Por dónde retomar (2026-09-18)
 
