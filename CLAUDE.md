@@ -1,0 +1,104 @@
+# Specialist (cross-repo orchestrator)
+
+`/var/www/specialist/` is **not a git repo itself** — it's a plain directory holding four
+independent git repos, each with its own remote, history and `CLAUDE.md`:
+
+```
+specialist-be       NestJS 10 + Prisma + PostgreSQL REST API — the canonical domain model.
+                     Deployed on Fly.io. Has architecture fitness functions and per-context
+                     skills (add-endpoint, add-entity-field, ...).
+specialist-fe        Next.js 16 public web app (clients + professionals + companies).
+                     Deployed on Vercel. Port 3001 in dev. Keeps its own local types/index.ts,
+                     does NOT consume @specialist/shared.
+specialist-admin      Next.js 16 internal admin portal (role: isAdmin only). Port 3000 in dev.
+                     Consumes @specialist/shared. No test suite.
+specialist-shared    Small hand-written TS package (types/schemas/constants/contracts).
+                     Ships via committed dist/ + a raw github: dependency URL, not npm — no
+                     monorepo linking, no auto-propagation. Only specialist-admin consumes it,
+                     and only after a build+commit+push+reinstall cycle there.
+```
+
+`DEPLOYMENT.md` and `SOCIAL_LOGIN_ARCHITECTURE.md` in this directory describe the deployed
+topology (Vercel → Fly.io → Supabase) and the OAuth flow across `specialist-fe`/`specialist-be`.
+
+`TODO.md` in this directory is the **global backlog/roadmap**, one `##` section per repo (moved
+here from `specialist-be/TODO.md` and merged with `specialist-fe/TODO.md` on 2026-09-16 — neither
+repo has its own anymore). Check it during the investigate step of `orchestrate-feature` for
+already-known plans/priorities before planning a requirement from scratch. `specialist-be`'s
+`session-recap` skill keeps its "Backend" section current; update the other sections by hand.
+
+## Role of a session started here
+
+A Claude Code session whose primary working directory is `/var/www/specialist/` acts as the
+**cross-repo orchestrator**: given a feature/bug requirement, it investigates which repos are
+affected, plans the contract between them (API shape, DTO fields, branch name), and **delegates
+the actual implementation to one subagent per affected repo** via the `orchestrate-feature` skill,
+rather than editing files directly across repos itself.
+
+**For any feature or bug request that plausibly touches more than one repo (almost anything
+involving an API change, a new field, or new UI backed by data), invoke the `orchestrate-feature`
+skill first.** For a change that is obviously confined to one repo (e.g. "fix this admin table's
+column width"), just `cd`/work in that repo directly — don't spin up the orchestration machinery
+for single-repo work.
+
+## Commands
+
+There's no root-level build/test — everything runs per-repo. Prefer these forms over `cd` so a
+single Bash call stays self-contained:
+
+```bash
+git -C specialist-be <cmd>              # instead of: cd specialist-be && git <cmd>
+npm --prefix specialist-fe run lint     # instead of: cd specialist-fe && npm run lint
+gh pr create --repo DiegoSana/specialist-fe ...   # --repo, not cwd-based detection (see Gotchas)
+```
+
+Each repo's own `CLAUDE.md` has its exact commands (`npm test`, `npm run lint`, `npx prisma
+generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
+`specialist-admin/CLAUDE.md`, `specialist-shared/CLAUDE.md`.
+
+## Conventions
+
+- One GitHub identity across all four repos: `DiegoSana` (personal), not `diego-sanabria-azumo`
+  (work). Every repo's local `git config user.name`/`user.email` should be `Diego Sanabria` /
+  `diegohsanabria@gmail.com` — check with `git -C <repo> config user.email` before committing; if
+  it's unset or shows the azumo address, set it locally (never touch the global config, which is
+  intentionally the azumo identity for other projects on this machine).
+- Use one consistent branch name across every repo touched by a given feature (e.g.
+  `feat/portfolio-videos` in `specialist-be` **and** `specialist-fe`) so the work is easy to
+  correlate later — there's no monorepo tooling tying them together otherwise.
+- If a repo already has uncommitted work on another branch when you need to start a new one, don't
+  disturb it: use `git worktree add <tmp-dir> main -b <branch>`, do the work there, commit, then
+  `git worktree remove <tmp-dir>`. This is the same trick used to add this harness to
+  `specialist-fe` without touching its in-progress feature branch.
+- Default to **implement + test/lint/build green + commit locally**, then stop and report before
+  pushing or opening PRs — one confirmation point for the whole cross-repo change, not four. Push
+  and open PRs only once asked (or if the original request already said to).
+
+## Gotchas
+
+- **This directory has no `.git`.** Don't run bare `git status`/`git commit` here — always target a
+  specific repo (`git -C specialist-be ...`).
+- **`gh` is unreliable when cwd-detection is involved across these sibling directories** — pass
+  `--repo DiegoSana/<name>` explicitly on every `gh pr create`/`gh pr view`/etc. rather than relying
+  on it to infer the repo from the working directory (`gh pr create` failed with "not a git
+  repository" via `cd`-then-run in this exact layout; `--repo` fixed it). Root cause found
+  2026-09-16: `gh` here is installed as a **snap** (`which gh` → `/snap/bin/gh`), confined to only
+  the `home`/`network`/`ssh-keys`/`desktop` interfaces (`snap connections gh`) — it has no
+  filesystem access to `/var/www` at all, so it can't read local git state there even with the
+  right cwd, and reports a misleading "not a git repository (or any parent up to mount point
+  /var/lib)". `--repo` alone isn't enough once a PR's branch must be pushed already: also pass
+  `--head <branch> --base main` explicitly on `gh pr create` so it never tries to run `git` against
+  this directory to detect the current branch — that combination is what actually works.
+- `specialist-shared` has no build-on-change propagation: a plan that touches it needs that repo's
+  own build+commit+push done (and merged to `main`) **before** delegating to `specialist-admin`,
+  which is the one legitimate exception to "don't push until everything's done."
+- `specialist-fe` does not depend on `specialist-shared` at all — don't route type changes for the
+  public web app through that package.
+- Only `specialist-be` has enforced architecture rules (`architecture.spec.ts` fitness functions)
+  and a full skill set (`add-endpoint`, `add-entity-field`, ...). `specialist-fe`/`specialist-admin`
+  are convention-guided via `.claude/rules/`, not test-enforced; `specialist-shared` has no tests
+  at all. Calibrate how much you trust "it compiled" accordingly per repo.
+- The `claude()` shell function that switches to the personal Claude account
+  (`CLAUDE_CONFIG_DIR=~/.claude-personal`) triggers on any `$PWD` starting with
+  `/var/www/specialist`, so it already covers this directory — no extra setup needed to launch a
+  session here under the right account.

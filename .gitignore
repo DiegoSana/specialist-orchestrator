@@ -1,0 +1,8 @@
+# Each of these is its own independent git repo/clone — not nested here.
+/specialist-be/
+/specialist-fe/
+/specialist-admin/
+/specialist-shared/
+
+.DS_Store
+*.log
