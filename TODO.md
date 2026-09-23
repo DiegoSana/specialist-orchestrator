@@ -1,7 +1,7 @@
 # 📋 Specialist — Todo & Roadmap (global)
 
-> Última actualización: 2026-09-22 (tachado ítem 1 del rediseño de estados: docs reorganizados,
-> `specialist-be/TODO.md` desincronizado eliminado, causa raíz corregida en `session-recap`)
+> Última actualización: 2026-09-23 (agregados 3 pendientes nuevos: bloqueo de multi-perfil MVP,
+> navegación sin perfil en social login, mensajes de fotos/buenas prácticas en nueva solicitud)
 
 Este archivo vive en `/var/www/specialist/` (el directorio padre, no es un repo git) y es el
 **único** TODO/roadmap del proyecto desde 2026-09-16. Antes había uno por repo:
@@ -97,6 +97,38 @@ bloque de texto de cada uno — ya trae el contexto necesario para no tener que 
    (`professionals.reviews.loginRequired`) en vez de string, crasheaba al abrir el perfil de un
    especialista con rating — era `t('details.reviews')`.
 
+## 🆕 Nuevos pendientes (2026-09-23)
+
+Pedidos por el usuario directamente sobre este archivo, sin investigar todavía — quedan acá como
+backlog crudo para retomar con `orchestrate-feature` (los tres son potencialmente cross-repo).
+
+1. **[BE+FE] Bloquear multi-perfil de usuario para el MVP.** Hoy un mismo usuario puede terminar
+   con más de un tipo de perfil (cliente/profesional/empresa); para el MVP eso debe restringirse:
+   - El usuario que se registró como **cliente** no debe poder crear un perfil profesional ni un
+     perfil empresa.
+   - El usuario que se registró como **especialista (profesional)** sí debe poder crear además un
+     perfil **empresa** (caso válido: especialista que además arma su empresa).
+   - Revisar puntualmente el **flujo del especialista que quiere registrar su empresa** — hoy no
+     está claro que funcione bien de punta a punta.
+   - Relacionado con el ítem ya existente "Auditoría de usuarios y perfiles + flujos de estado"
+     (ver "Por dónde retomar" más abajo) y con "Perfil activo (MVP)" en la sección Backend — capaz
+     conviene resolverlos juntos en la misma investigación en vez de por separado.
+
+2. **[FE, posiblemente BE] Social login: bloquear navegación sin perfil elegido.** Cuando un
+   usuario se loguea con social login y no existe un `User` registrado, hoy se le crea uno **sin
+   ningún rol**, y se le muestra una pantalla para elegir rol y continuar el registro. Problema: si
+   en vez de completar esa pantalla el usuario navega a otra URL directamente, queda logueado
+   igual, sin perfil, y puede acceder a pantallas que no debería. Hay que evitar esa navegación: si
+   el usuario no tiene perfil, no debe poder acceder a ninguna pantalla que no sea pública — debe
+   ser redirigido siempre a la pantalla de selección de rol/perfil hasta que la complete.
+
+3. **[FE] Nueva solicitud: destacar el beneficio de agregar fotos + mejores prácticas.** En la
+   pantalla de creación de una solicitud, informar al usuario que si agrega imágenes tiene muchas
+   más chances de ser elegido por algún especialista — el mensaje tiene que ser **bien visible**
+   (evaluar un modal pre-guardado/pre-save como una opción, no la única). Además, agregar en esa
+   misma pantalla una breve descripción de cuáles son las mejores prácticas para crear una
+   solicitud (qué información conviene incluir para conseguir mejores respuestas).
+
 ## ▶️ Por dónde retomar (2026-09-18)
 
 Sesión cerrada con todo lo chico resuelto y mergeado. Lo que queda son ítems que piden decisión o
@@ -105,8 +137,8 @@ plan antes de tocar código; orden sugerido (los detalles están en cada ítem, 
 1. **Opt-out de WhatsApp visible en el perfil del usuario** (Backend → "Mostrar el estado de
    opt-out al usuario en su propio perfil"). Cross-repo `specialist-be` + `specialist-fe`; el más
    acotado. Definir junto con "cómo se le avisa al usuario que quedó bloqueado".
-2. **Estado `ASIGNADO` en Request** (Backend → "Revisar el flujo de estados de `Request`"). Empezar
-   en plan mode: impacto en `canChangeStatusBy`, reglas de follow-up y FE/admin.
+2. ~~**Estado `ASIGNADO` en Request**~~ — descartado 2026-09-23, ítem previo al rediseño de estados
+   (ya cubierto por el modelo de 15 estados, ver Backend).
 3. **Auditoría de usuarios y perfiles + flujos de estado** (Backend → "Revisar el diseño de
    usuarios y perfiles"). Entregable: documento con hallazgos, no código; puede incluir los
    diagramas de estado de Request que faltan.
@@ -1318,12 +1350,10 @@ model Company {
   probable, una forma de reactivarlo él mismo. Definir junto con el punto de arriba sobre cómo se
   le avisa al usuario que quedó bloqueado.
 
-- [ ] **Revisar el flujo de estados de `Request`**: evaluar agregar un estado `ASIGNADO` entre
-  `PENDING` y `ACCEPTED` — hoy un request público pasa de sin-proveedor (`PENDING`) directo a
-  `ACCEPTED` cuando se asigna (`RequestInterestService.assignProvider`), sin un estado intermedio
-  que distinga "tiene proveedor asignado, todavía no confirmado por el proveedor" de "el proveedor
-  ya confirmó". Evaluar impacto en `canChangeStatusBy`, en las reglas de follow-up
-  (`application/follow-up/rules/`), y en el FE/admin, que ya asumen los 5 estados actuales.
+- [x] ~~**Revisar el flujo de estados de `Request`**: evaluar agregar un estado `ASIGNADO` entre
+  `PENDING` y `ACCEPTED`.~~ **Descartado 2026-09-23**: ítem escrito contra el modelo viejo de 5
+  estados; el rediseño a 15 estados (2026-09-21/22, ver ADR-006) ya cubre ese hueco intermedio. Sin
+  acción.
 
 - [ ] **Revisar el diseño de usuarios y perfiles, incluyendo los flujos de estado** (2026-09-18):
   auditoría más amplia que el bug puntual de arriba — cubrir la relación `User` ↔
