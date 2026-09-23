@@ -1,7 +1,10 @@
 # Specialist (cross-repo orchestrator)
 
-`/var/www/specialist/` is **not a git repo itself** — it's a plain directory holding four
-independent git repos, each with its own remote, history and `CLAUDE.md`:
+`/var/www/specialist/` is itself a git repo (`DiegoSana/specialist-orchestrator`, added
+2026-09-23) that versions only the orchestration layer — this `CLAUDE.md`, `TODO.md`,
+`DEPLOYMENT.md`, `SOCIAL_LOGIN_ARCHITECTURE.md`, `.claude/` (settings + cross-repo skills). It
+holds four independent git repos as gitignored subdirectories, each with its own remote, history
+and `CLAUDE.md`:
 
 ```
 specialist-be       NestJS 10 + Prisma + PostgreSQL REST API — the canonical domain model.
@@ -76,8 +79,9 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
 
 ## Gotchas
 
-- **This directory has no `.git`.** Don't run bare `git status`/`git commit` here — always target a
-  specific repo (`git -C specialist-be ...`).
+- **A bare `git status`/`git commit` here now targets the orchestrator repo itself**, not one of
+  the four sibling repos — that's usually not what you want; target a specific repo explicitly
+  (`git -C specialist-be ...`) unless the change is actually to `CLAUDE.md`/`TODO.md`/`.claude/`.
 - **`gh` is unreliable when cwd-detection is involved across these sibling directories** — pass
   `--repo DiegoSana/<name>` explicitly on every `gh pr create`/`gh pr view`/etc. rather than relying
   on it to infer the repo from the working directory (`gh pr create` failed with "not a git
@@ -88,7 +92,13 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
   right cwd, and reports a misleading "not a git repository (or any parent up to mount point
   /var/lib)". `--repo` alone isn't enough once a PR's branch must be pushed already: also pass
   `--head <branch> --base main` explicitly on `gh pr create` so it never tries to run `git` against
-  this directory to detect the current branch — that combination is what actually works.
+  this directory to detect the current branch — that combination is what actually works. This
+  snap confinement is about `gh` specifically, not `git`: `git` itself has full filesystem access
+  here, so pushing/pulling the orchestrator repo (`git -C /var/www/specialist push`, no `-C` needed
+  when already cwd'd there) works fine — only `gh repo create --source=. --push` would try to shell
+  out to `git` under the confined process and is expected to fail the same way; create the repo
+  with plain `gh repo create <owner>/<name> --private` (no `--source`, network-only) and push
+  separately with plain `git`.
 - `specialist-shared` has no build-on-change propagation: a plan that touches it needs that repo's
   own build+commit+push done (and merged to `main`) **before** delegating to `specialist-admin`,
   which is the one legitimate exception to "don't push until everything's done."
