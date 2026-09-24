@@ -27,12 +27,19 @@ actualizan a mano.
 
 Pedidos directos del usuario, todavía no investigados — candidatos para `orchestrate-feature`.
 
-1. **[BE+FE] Bloquear multi-perfil de usuario para el MVP.** El usuario que se registró como
-   cliente no debe poder crear un perfil profesional ni un perfil empresa. El que se registró como
-   especialista sí debe poder sumar además un perfil empresa. Revisar puntualmente el flujo del
-   especialista que quiere registrar su empresa — hoy no está claro que funcione bien de punta a
-   punta. Relacionado con "Auditoría de usuarios y perfiles" abajo — capaz conviene resolverlos
-   juntos en la misma investigación.
+1. ~~**[BE+FE] Bloquear multi-perfil de usuario para el MVP.**~~ **Resuelto 2026-09-24** (rama
+   `feat/block-multi-profile-mvp` en ambos repos): `specialist-be`
+   [#74](https://github.com/DiegoSana/specialist-be/pull/74), mergeado — `UserEntity.canCreate
+   ProfessionalProfile()`/`canCreateCompanyProfile()` (antes código muerto) ahora implementan la
+   regla simétrica (cliente puro bloqueado; quien ya es profesional o empresa puede crear el otro
+   tipo de proveedor aunque también tenga perfil cliente) y se hacen cumplir en
+   `ProfessionalService.createProfile`/`CompanyService.createProfile` (403). `specialist-fe`
+   [#31](https://github.com/DiegoSana/specialist-fe/pull/31), mergeado — `profile/page.tsx` oculta
+   por completo las secciones "Perfil de Especialista"/"Perfil de Empresa" (no solo el botón) para
+   un usuario cliente puro; vuelven a aparecer solas cuando se permita multi-perfil post-MVP
+   (gateado por el mismo `isPureClient`). El flujo "especialista registra su empresa" se investigó
+   y no tenía ningún bug — ya funcionaba de punta a punta antes de este cambio y sigue funcionando
+   después, gracias a la regla simétrica.
 2. **[FE, posiblemente BE] Social login: bloquear navegación sin perfil elegido.** Un usuario
    logueado por social login sin `User`/rol asignado puede navegar a cualquier URL en vez de quedar
    forzado a la pantalla de selección de rol/perfil hasta completarla.
