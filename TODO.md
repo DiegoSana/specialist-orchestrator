@@ -122,6 +122,11 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 ## 🎨 Frontend (specialist-fe)
 
+- **`npm run lint` roto** (encontrado 2026-09-24): Next 16.0.10 sacó el subcomando `next lint`
+  (`npx next --help` ya no lo lista), y `eslint-config-next` sigue en `^15.0.0` — el `CLAUDE.md` ya
+  documentaba el desalineamiento de versiones como gotcha, pero ahora el script directamente falla
+  ("Invalid project directory provided"). Workaround usado mientras tanto: `npx eslint <archivo>`
+  directo. Definir reemplazo real (flat config de ESLint, o el paquete que Next 16 recomienda).
 - Manejo de 403 al acceder a una solicitud por URL directa: confirmar que el FE muestra un mensaje
   apropiado (hoy el backend ya devuelve el código correcto).
 - Revisar completitud de traducciones `es`/`en` (`messages/*.json`) — keys candidatas a faltar,
