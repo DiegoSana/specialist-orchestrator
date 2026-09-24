@@ -51,9 +51,22 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
    un bug chico encontrado en el camino: `profile-setup/page.tsx` no contemplaba
    `hasCompanyProfile` al decidir si el usuario ya tenía perfil (un usuario solo-empresa veía la
    pantalla de selección de rol de nuevo).
-3. **[FE] Nueva solicitud: destacar el beneficio de agregar fotos + mejores prácticas.** Mensaje
-   bien visible (evaluar un modal pre-guardado, no la única opción) sobre las mejores chances de ser
-   elegido si se agregan imágenes, más una breve guía de mejores prácticas para crear una solicitud.
+3. ~~**[FE] Nueva solicitud: destacar el beneficio de agregar fotos + mejores prácticas.**~~
+   **Resuelto 2026-09-24** (`specialist-fe` [#33](https://github.com/DiegoSana/specialist-fe/pull/33),
+   `specialist-be` [#75](https://github.com/DiegoSana/specialist-be/pull/75), ambos mergeados). La
+   subida de fotos en "nueva solicitud" era un placeholder no funcional ("próximamente") — se
+   implementó de punta a punta: banner de beneficio bien visible, lista de mejores prácticas, modal
+   opcional si se envía sin fotos, y soporte real de fotos **y video** (multi-selección, hasta 6
+   archivos). En el camino se encontraron y arreglaron 3 bugs reales, ninguno introducido por esta
+   sesión: (1) `request-photo` nunca permitía video en el backend, tirando 500 en vez de subir (BE
+   #75); (2) subir antes de crear la solicitud daba 403 porque el storage no tiene metadata en
+   base de datos — se resolvió subiendo fotos/videos recién después de creada la solicitud (mismo
+   patrón que ya usa la pantalla de detalle), no tocando la lógica frágil de permisos; (3) al regex
+   de detección de video le faltaba `.mov` (el formato que graba un iPhone por default), rompiendo
+   silenciosamente esos videos también en la pantalla de detalle ya en producción. Además: si un
+   archivo excede el tamaño máximo (10MB foto / 100MB video) ahora avisa al elegirlo, y si falla
+   adjuntar algo después de crear la solicitud ya no navega en silencio — muestra qué falló y por
+   qué. **Pendiente**: click-through manual con backend real (no se hizo esta sesión).
 4. ~~**[BE, bug] Permisos de imágenes/archivos: el admin recibe "access denied".**~~ **Resuelto
    2026-09-24** (`specialist-admin` [#18](https://github.com/DiegoSana/specialist-admin/pull/18),
    mergeado). No era un bug de backend: `FileAccessGuard`/`canAccessFile()` en `specialist-be` ya
