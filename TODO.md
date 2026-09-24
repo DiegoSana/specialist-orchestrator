@@ -122,12 +122,11 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   directa (5432) — sin ese query param, Prisma tira `PostgresError 26000: prepared statement "sX"
   does not exist` contra pgbouncer en modo transacción (pasó una vez al aplicar el cambio, se
   arregló agregando el parámetro). Usuario confirma mejora notable de latencia.
-  **Pendiente, no bloqueante**: mergear `perf/fly-region-supabase-alignment` (`specialist-be`) para
-  que `fly.toml` (`primary_region: lax`, `min_machines_running: 1`) y el `directUrl` de
-  `schema.prisma` queden versionados y un futuro deploy no pise los valores live a mano. **Antes de
-  mergear esa rama** hay que setear el secret `DIRECT_URL` (conexión directa 5432, sacada del
-  dashboard de Supabase) — el release_command `prisma migrate deploy` va a fallar sin él una vez
-  que el schema con `directUrl` esté deployado.
+  `DIRECT_URL` seteado (conexión directa 5432) y PR abierto:
+  [specialist-be#76](https://github.com/DiegoSana/specialist-be/pull/76), que versiona
+  `fly.toml` (`primary_region: lax`, `min_machines_running: 1`) y el `directUrl` de
+  `schema.prisma` para que un futuro deploy no pise los valores aplicados en vivo. Falta mergear
+  y confirmar que el release_command `prisma migrate deploy` corre bien contra `DIRECT_URL`.
 
 **Notificaciones / WhatsApp**
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
