@@ -40,9 +40,17 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
    (gateado por el mismo `isPureClient`). El flujo "especialista registra su empresa" se investigó
    y no tenía ningún bug — ya funcionaba de punta a punta antes de este cambio y sigue funcionando
    después, gracias a la regla simétrica.
-2. **[FE, posiblemente BE] Social login: bloquear navegación sin perfil elegido.** Un usuario
-   logueado por social login sin `User`/rol asignado puede navegar a cualquier URL en vez de quedar
-   forzado a la pantalla de selección de rol/perfil hasta completarla.
+2. ~~**[FE, posiblemente BE] Social login: bloquear navegación sin perfil elegido.**~~ **Resuelto
+   2026-09-24** (`specialist-fe` [#32](https://github.com/DiegoSana/specialist-fe/pull/32),
+   mergeado, sin cambios de backend). Causa: `hooks/use-require-profile.ts` ya implementaba el
+   redirect correcto pero era código muerto (no se usaba en ningún lado); `notifications/page.tsx`
+   y `profile/page.tsx` renderizaban con `AppLayout` (sin ningún guard) en vez de `ProtectedLayout`
+   como el resto de las páginas autenticadas. Se reescribió el hook (resuelve el usuario en un
+   efecto para evitar hydration mismatch, redirige a `/login` si no hay sesión y a
+   `/profile-setup` si no hay ningún perfil) y se enganchó en esas dos páginas. De paso, arreglado
+   un bug chico encontrado en el camino: `profile-setup/page.tsx` no contemplaba
+   `hasCompanyProfile` al decidir si el usuario ya tenía perfil (un usuario solo-empresa veía la
+   pantalla de selección de rol de nuevo).
 3. **[FE] Nueva solicitud: destacar el beneficio de agregar fotos + mejores prácticas.** Mensaje
    bien visible (evaluar un modal pre-guardado, no la única opción) sobre las mejores chances de ser
    elegido si se agregan imágenes, más una breve guía de mejores prácticas para crear una solicitud.
