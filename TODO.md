@@ -54,11 +54,16 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 3. **[FE] Nueva solicitud: destacar el beneficio de agregar fotos + mejores prácticas.** Mensaje
    bien visible (evaluar un modal pre-guardado, no la única opción) sobre las mejores chances de ser
    elegido si se agregan imágenes, más una breve guía de mejores prácticas para crear una solicitud.
-4. **[BE, bug] Permisos de imágenes/archivos: el admin recibe "access denied".** El mismo archivo
-   que se ve bien desde el request view da error desde `specialist-admin` — el admin debería poder
-   ver cualquier archivo de cualquier solicitud. Revisar el check de ownership del endpoint que
-   sirve esos archivos (patrón `canBeViewedBy`/`AuthContext` con soporte admin, ya usado en otros
-   módulos).
+4. ~~**[BE, bug] Permisos de imágenes/archivos: el admin recibe "access denied".**~~ **Resuelto
+   2026-09-24** (`specialist-admin` [#18](https://github.com/DiegoSana/specialist-admin/pull/18),
+   mergeado). No era un bug de backend: `FileAccessGuard`/`canAccessFile()` en `specialist-be` ya
+   le daban acceso total al admin. La causa real era en `specialist-admin`:
+   `app/admin/requests/[id]/page.tsx` mostraba las fotos (privadas, `storage/private/...`) con un
+   `<img src>` plano, que el navegador pide sin el header `Authorization` — el backend lo trataba
+   como no autenticado y devolvía 403. Se portó el patrón que `specialist-fe` ya usa para esto
+   (`AuthenticatedImage`: fetch con bearer token + blob URL) a este repo. **Pendiente**: click-through
+   manual en el navegador con una solicitud que tenga fotos privadas — no se hizo en esta sesión
+   (este repo no tiene suite de tests).
 
 ## 🎯 Decisión / diseño pendiente
 
