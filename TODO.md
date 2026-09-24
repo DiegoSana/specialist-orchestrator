@@ -115,18 +115,17 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Decidir si mantener o eliminar `quoteAmount`/`quoteNotes` en `Request` (hoy sin uso, no es MVP).
 
 **Deploy / performance**
-- ~~Reportado 2026-09-24: la API en Fly.io se sentía lenta en *todos* los requests.~~ **Mitigado
-  2026-09-24** vía cambios live (fuera de git, aplicados directo con `flyctl`): región movida de
-  `gru` (São Paulo) a `lax` (Los Ángeles, cerca del proyecto de Supabase en `us-west-2`) y
-  `DATABASE_URL` apuntado al pooler de Supabase (6543) con `?pgbouncer=true` en vez de la conexión
-  directa (5432) — sin ese query param, Prisma tira `PostgresError 26000: prepared statement "sX"
-  does not exist` contra pgbouncer en modo transacción (pasó una vez al aplicar el cambio, se
-  arregló agregando el parámetro). Usuario confirma mejora notable de latencia.
-  `DIRECT_URL` seteado (conexión directa 5432) y PR abierto:
-  [specialist-be#76](https://github.com/DiegoSana/specialist-be/pull/76), que versiona
-  `fly.toml` (`primary_region: lax`, `min_machines_running: 1`) y el `directUrl` de
-  `schema.prisma` para que un futuro deploy no pise los valores aplicados en vivo. Falta mergear
-  y confirmar que el release_command `prisma migrate deploy` corre bien contra `DIRECT_URL`.
+- ~~Reportado 2026-09-24: la API en Fly.io se sentía lenta en *todos* los requests.~~ **Resuelto
+  2026-09-24**: región movida de `gru` (São Paulo) a `lax` (Los Ángeles, cerca del proyecto de
+  Supabase en `us-west-2`), `DATABASE_URL` apuntado al pooler de Supabase (6543) con
+  `?pgbouncer=true`, `DIRECT_URL` (conexión directa 5432) agregado para las migraciones, y
+  `min_machines_running: 1` para sacar los cold starts. Mergeado en
+  [specialist-be#76](https://github.com/DiegoSana/specialist-be/pull/76) y deployado con éxito
+  (CI verde, health check 200, release sin errores). Dos gotchas de Supabase que costaron un
+  intento fallido cada uno, documentados en la memoria del proyecto: (1) sin `?pgbouncer=true` en
+  la URL del pooler, Prisma tira `26000: prepared statement does not exist`; (2) el usuario del
+  pooler (`postgres.<ref>`) no sirve para la conexión directa, que usa `postgres` a secas — mezclar
+  los dos da `P1000: Authentication failed`.
 
 **Notificaciones / WhatsApp**
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
