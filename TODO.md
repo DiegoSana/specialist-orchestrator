@@ -114,6 +114,22 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   `docs/guides/MIGRATION_GUIDE.md`.
 - Decidir si mantener o eliminar `quoteAmount`/`quoteNotes` en `Request` (hoy sin uso, no es MVP).
 
+**Deploy / performance**
+- Reportado 2026-09-24: la API en Fly.io se sentía lenta en *todos* los requests (no solo el
+  primero). Causa más probable: `fly.toml` tenía `primary_region = 'gru'` (São Paulo) mientras el
+  proyecto de Supabase está en `us-west-2` (Oregon) — cada round trip a la DB cruzaba medio
+  continente — más `min_machines_running = 0`, que apagaba la máquina entera entre requests
+  (cold start extra). Preparado en la rama `perf/fly-region-supabase-alignment` de
+  `specialist-be` (sin pushear): `primary_region` → `sea`, `min_machines_running` → `1`, y
+  `directUrl` agregado a `schema.prisma` para poder separar el pooler de Supabase (6543,
+  runtime) de la conexión directa (5432, solo migraciones). **Falta un paso manual antes de
+  deployar**: actualizar los secrets de Fly —
+  `fly secrets set DATABASE_URL=<connection string del pooler, puerto 6543, con
+  ?pgbouncer=true> DIRECT_URL=<connection string directa, puerto 5432>` (sacar ambas del
+  dashboard de Supabase, Settings → Database → Connection string / Connection pooling) — y
+  luego pushear/mergear la rama para que se deploye. Fly.io estaba con problemas el
+  2026-09-24, así que se pausó ahí; retomar cuando el servicio esté estable.
+
 **Notificaciones / WhatsApp**
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.

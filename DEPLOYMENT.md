@@ -30,15 +30,25 @@
 3. Choose region closest to your users (São Paulo for Argentina)
 4. Save the password!
 
-### 1.2 Get Connection String
-1. Go to **Settings > Database**
-2. Copy the **Connection string (URI)**
-3. It looks like: `postgresql://postgres.[ref]:[password]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`
+### 1.2 Get Connection Strings
+Grab **two** connection strings from **Settings > Database** — the app needs both (see
+`specialist-be/docs/guides/ENVIRONMENT_VARIABLES.md`):
+1. **Connection pooling** (transaction mode, port `6543`) → used as `DATABASE_URL` at runtime.
+   Looks like: `postgresql://postgres.[ref]:[password]@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true`
+2. **Connection string (URI)**, direct (port `5432`) → used as `DIRECT_URL`, only for
+   `prisma migrate deploy`/`migrate dev` (pgBouncer's transaction mode doesn't support the
+   prepared statements migrations need).
+
+⚠️ **Match the Fly app's region to the Supabase project's region** (or the closest available Fly
+region to it) — see the region note under Step 2.3. A mismatch (e.g. Fly in São Paulo, Supabase
+in Oregon) adds 150-250ms of pure network latency to *every* DB round trip, on *every* request —
+diagnosed as the main cause of a "the whole API feels slow" report on 2026-09-24, see `TODO.md`
+Backend section.
 
 ### 1.3 Run Migrations
 ```bash
 cd specialist-be
-DATABASE_URL="your-supabase-url" npx prisma migrate deploy
+DIRECT_URL="your-supabase-direct-url" npx prisma migrate deploy
 ```
 
 ---
@@ -70,13 +80,16 @@ fly launch --no-deploy
 
 When prompted:
 - App name: `specialist-api` (or choose your own)
-- Region: `gru` (São Paulo) for Argentina
+- Region: whatever is closest to your **Supabase project's** region, not necessarily your users'
+  (see the warning in Step 1.2) — e.g. `gru` (São Paulo) if Supabase is in `sa-east-1`, `sea`
+  (Seattle) if it's in `us-west-2`
 - PostgreSQL: **No** (we're using Supabase)
 
 ### 2.4 Set Secrets
 ```bash
 # Required secrets
-fly secrets set DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+fly secrets set DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true"
+fly secrets set DIRECT_URL="postgresql://postgres.[ref]:[password]@db.[ref].supabase.co:5432/postgres"
 fly secrets set JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
 fly secrets set CORS_ORIGINS="https://your-app.vercel.app"
 
