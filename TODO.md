@@ -94,6 +94,16 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   encogerlo a solo lo que se usa, (3) eliminarlo y mover esas pocas líneas a `specialist-admin`
   (recomendada si solo admin lo sigue consumiendo), (4) generar tipos desde el OpenAPI del backend
   en vez de mantener un espejo manual.
+- ~~**Visibilidad de fotos/videos de solicitudes.**~~ **Decidido 2026-09-24**: sirven para que el
+  especialista pueda valuar el trabajo, así que **mientras la solicitud es pública y no tiene
+  proveedor asignado**, las fotos/videos son visibles para cualquier usuario autenticado (no
+  anónimo). **En el momento en que se asigna un proveedor** (`providerId`, sea profesional o
+  empresa), las fotos pasan a ser privadas — solo las ve el cliente, ese proveedor asignado, y los
+  admins; el resto de especialistas (incluso los que expresaron interés) pierde el acceso ahí
+  mismo. Las solicitudes **directas** (no públicas, dirigidas a un especialista puntual) son
+  privadas desde el vamos, sin la ventana pública. Implementado en `specialist-be`
+  (`fix/request-photo-privacy`, ver Backend) y reflejado en el mensaje informativo del formulario de
+  nueva solicitud en `specialist-fe`.
 
 ---
 
