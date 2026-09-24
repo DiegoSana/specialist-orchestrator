@@ -115,20 +115,19 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Decidir si mantener o eliminar `quoteAmount`/`quoteNotes` en `Request` (hoy sin uso, no es MVP).
 
 **Deploy / performance**
-- Reportado 2026-09-24: la API en Fly.io se sentía lenta en *todos* los requests (no solo el
-  primero). Causa más probable: `fly.toml` tenía `primary_region = 'gru'` (São Paulo) mientras el
-  proyecto de Supabase está en `us-west-2` (Oregon) — cada round trip a la DB cruzaba medio
-  continente — más `min_machines_running = 0`, que apagaba la máquina entera entre requests
-  (cold start extra). Preparado en la rama `perf/fly-region-supabase-alignment` de
-  `specialist-be` (sin pushear): `primary_region` → `sea`, `min_machines_running` → `1`, y
-  `directUrl` agregado a `schema.prisma` para poder separar el pooler de Supabase (6543,
-  runtime) de la conexión directa (5432, solo migraciones). **Falta un paso manual antes de
-  deployar**: actualizar los secrets de Fly —
-  `fly secrets set DATABASE_URL=<connection string del pooler, puerto 6543, con
-  ?pgbouncer=true> DIRECT_URL=<connection string directa, puerto 5432>` (sacar ambas del
-  dashboard de Supabase, Settings → Database → Connection string / Connection pooling) — y
-  luego pushear/mergear la rama para que se deploye. Fly.io estaba con problemas el
-  2026-09-24, así que se pausó ahí; retomar cuando el servicio esté estable.
+- ~~Reportado 2026-09-24: la API en Fly.io se sentía lenta en *todos* los requests.~~ **Mitigado
+  2026-09-24** vía cambios live (fuera de git, aplicados directo con `flyctl`): región movida de
+  `gru` (São Paulo) a `lax` (Los Ángeles, cerca del proyecto de Supabase en `us-west-2`) y
+  `DATABASE_URL` apuntado al pooler de Supabase (6543) con `?pgbouncer=true` en vez de la conexión
+  directa (5432) — sin ese query param, Prisma tira `PostgresError 26000: prepared statement "sX"
+  does not exist` contra pgbouncer en modo transacción (pasó una vez al aplicar el cambio, se
+  arregló agregando el parámetro). Usuario confirma mejora notable de latencia.
+  **Pendiente, no bloqueante**: mergear `perf/fly-region-supabase-alignment` (`specialist-be`) para
+  que `fly.toml` (`primary_region: lax`, `min_machines_running: 1`) y el `directUrl` de
+  `schema.prisma` queden versionados y un futuro deploy no pise los valores live a mano. **Antes de
+  mergear esa rama** hay que setear el secret `DIRECT_URL` (conexión directa 5432, sacada del
+  dashboard de Supabase) — el release_command `prisma migrate deploy` va a fallar sin él una vez
+  que el schema con `directUrl` esté deployado.
 
 **Notificaciones / WhatsApp**
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
