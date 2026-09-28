@@ -77,6 +77,17 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
    (`AuthenticatedImage`: fetch con bearer token + blob URL) a este repo. **Pendiente**: click-through
    manual en el navegador con una solicitud que tenga fotos privadas — no se hizo en esta sesión
    (este repo no tiene suite de tests).
+5. ~~**[BE+FE] Configuración de visibilidad para especialistas y empresas.**~~ **Resuelto
+   2026-09-28** (rama `feat/provider-visibility-toggle` en ambos repos): `specialist-be`
+   [#79](https://github.com/DiegoSana/specialist-be/pull/79), mergeado — campo `isVisible: Boolean
+   @default(true)` agregado a `Professional` y `Company`, editable por el dueño vía
+   `PATCH /professionals/me`/`/companies/me`, filtrado (`where.isVisible = true`) en
+   `search()` de ambos repositorios — cubre búsqueda pública y selección de destinatario para
+   solicitudes directas (mismo código). No afecta `findById` directo, `Request.providerId` ni
+   `RequestInterest` ya existentes; listados de admin usan un query path separado y no se tocaron.
+   `specialist-fe` [#38](https://github.com/DiegoSana/specialist-fe/pull/38), mergeado — toggle en
+   `profile/page.tsx` (secciones "Perfil de Especialista"/"Perfil de Empresa"), clonando el patrón
+   visual del opt-out de WhatsApp.
 
 ## 🎯 Decisión / diseño pendiente
 
@@ -94,6 +105,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   encogerlo a solo lo que se usa, (3) eliminarlo y mover esas pocas líneas a `specialist-admin`
   (recomendada si solo admin lo sigue consumiendo), (4) generar tipos desde el OpenAPI del backend
   en vez de mantener un espejo manual.
+- **Contenido legal/institucional de `specialist-fe`.** Términos y condiciones, sección "Quiénes
+  somos" y diseño de los links del footer — falta decidir contenido/copy antes de implementar (no
+  es solo maquetación).
 - ~~**Visibilidad de fotos/videos de solicitudes.**~~ **Decidido 2026-09-24**: sirven para que el
   especialista pueda valuar el trabajo, así que **mientras la solicitud es pública y no tiene
   proveedor asignado**, las fotos/videos son visibles para cualquier usuario autenticado (no
@@ -178,11 +192,8 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 ## 🎨 Frontend (specialist-fe)
 
-- **`npm run lint` roto** (encontrado 2026-09-24): Next 16.0.10 sacó el subcomando `next lint`
-  (`npx next --help` ya no lo lista), y `eslint-config-next` sigue en `^15.0.0` — el `CLAUDE.md` ya
-  documentaba el desalineamiento de versiones como gotcha, pero ahora el script directamente falla
-  ("Invalid project directory provided"). Workaround usado mientras tanto: `npx eslint <archivo>`
-  directo. Definir reemplazo real (flat config de ESLint, o el paquete que Next 16 recomienda).
+- ~~**`npm run lint` roto**~~ **Resuelto** (`specialist-fe` PR #34, `fix/lint-next16`, mergeado):
+  reemplazado `next lint` por flat config de ESLint nativo, compatible con Next 16.
 - Manejo de 403 al acceder a una solicitud por URL directa: confirmar que el FE muestra un mensaje
   apropiado (hoy el backend ya devuelve el código correcto).
 - Revisar completitud de traducciones `es`/`en` (`messages/*.json`) — keys candidatas a faltar,
@@ -209,11 +220,18 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 - Dashboard con métricas reales (hoy placeholder).
 - Gestión de usuarios: CRUD completo (hoy solo listar/ver/cambiar estado/confirmar
-  email-teléfono).
+  email-teléfono). Agregar bloquear y eliminar usuarios. Sacar las acciones rápidas de la grilla de
+  usuarios — todas las acciones (incluidas las nuevas) van en la vista de detalle del usuario, no
+  en la grilla.
 - Gestión de solicitudes y de perfiles Profesional/Empresa (acciones administrativas más allá de
   ver).
 - Generar `components/ui/` de shadcn (ya configurado en `components.json`, falta generar).
-- Mejorar la vista de detalle de Request (alcance específico por definir).
+- Mejorar la vista de detalle de Request (alcance específico por definir). Puntos ya identificados:
+  ~~(1) en la grilla de requests, mover la columna status para que quede antes de la columna
+  actions~~ **Resuelto 2026-09-28** ([specialist-admin#19](https://github.com/DiegoSana/specialist-admin/pull/19),
+  mergeado); (2) en la vista de detalle, la visualización de imágenes se ve cortada (arreglar el
+  layout/crop); (3) agregar la posibilidad de bloquear una imagen individual desde esa vista
+  (definir si el flag vive en backend o es solo UI de admin).
 - Evaluar qué tan complejo es hacer el admin mobile responsive (hoy no está pensado para mobile).
 - `DEPLOYMENT.md` (raíz) no documenta el deploy de `specialist-admin` en Vercel — solo tiene el
   paso a paso de `specialist-fe`. Agregar la sección equivalente (root directory
