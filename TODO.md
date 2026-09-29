@@ -161,6 +161,14 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   la URL del pooler, Prisma tira `26000: prepared statement does not exist`; (2) el usuario del
   pooler (`postgres.<ref>`) no sirve para la conexión directa, que usa `postgres` a secas — mezclar
   los dos da `P1000: Authentication failed`.
+- Detectado 2026-09-29 probando Twilio sandbox localmente: `docker-compose.dev.yml` (servicio
+  `app`) nunca recibió el mismo `DIRECT_URL` que se agregó para producción (ver arriba) — el
+  comando de arranque corre `prisma db push`, que valida `directUrl = env("DIRECT_URL")` en
+  `schema.prisma` y no está definido ni en el `environment:` del compose ni en `.env` local, así
+  que el contenedor falla con `P1012` antes de levantar. Agregar una línea `DIRECT_URL: ...`
+  (mismo valor que `DATABASE_URL`, apuntando a `localhost:5432` como el resto del servicio) al
+  `environment:` de `app` en `docker-compose.dev.yml` para que `docker compose up` funcione out of
+  the box.
 
 **Notificaciones / WhatsApp**
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
@@ -185,6 +193,11 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Tests de integración para permisos; tests E2E de flujos críticos (solicitud directa, solicitud
   pública, moderación de reviews); tests unitarios de `TwilioVerifyService` y del value object
   `Phone`.
+- `test/scripts/whatsapp/testing/test-single-followup.ts` no cierra el `NestApplicationContext` al
+  terminar (visto 2026-09-29): cada corrida deja un proceso `ts-node` colgado dentro del contenedor
+  `especialistas-api-dev`. Liviano (~13s CPU cada uno) pero se acumulan si se corre varias veces
+  seguidas para probar Twilio sandbox — falta un `await app.close()` (o similar) al final del
+  script.
 
 **Ideas futuras (no MVP)**
 - Multi-usuario por empresa (roles), verificación avanzada (AFIP/documentación), transferencia de
