@@ -171,6 +171,15 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   the box.
 
 **Notificaciones / WhatsApp**
+- **[Prioridad]** Investigar qué pasa cuando un cliente o especialista tiene **varias requests
+  abiertas en simultáneo**: los follow-ups matchean mensajes entrantes por número de teléfono
+  (`findMostRecentByPhone`, ver specialist-be#87 del 2026-09-29, que ya resolvió el caso de una
+  interaction vieja sin responder robando un mensaje nuevo **dentro del mismo request** — esto es
+  el caso más amplio, **entre requests distintos** del mismo teléfono). Si el mismo número tiene
+  follow-ups pendientes en dos requests a la vez, ¿cómo se evita que un mensaje se le asigne al
+  request equivocado? ¿Hay que desambiguar en el propio mensaje (pedirle al usuario que aclare a
+  cuál request se refiere), limitar a un follow-up activo por teléfono a la vez, o algo distinto?
+  Definir el comportamiento esperado antes de tocar código.
 - Separar el guard de `AdminWhatsAppDevController`: hoy tanto `simulate-reply` como
   `trigger-followup` requieren `WHATSAPP_PROVIDER=local` (`AdminWhatsAppService.isDevMode()`), así
   que ambos quedan inaccesibles apenas se usa Twilio real (visto 2026-09-29 al activar Twilio en
