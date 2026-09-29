@@ -24,6 +24,14 @@ specialist-shared    Small hand-written TS package (types/schemas/constants/cont
 `DEPLOYMENT.md` and `SOCIAL_LOGIN_ARCHITECTURE.md` in this directory describe the deployed
 topology (Vercel → Fly.io → Supabase) and the OAuth flow across `specialist-fe`/`specialist-be`.
 
+**There is no real production yet** (as of 2026-09-29): `specialist-api.fly.dev` /
+`specialist-fe`/`specialist-admin` on Vercel are live, but only for functional testing and
+validation with real external integrations (Twilio WhatsApp, OAuth, etc.) — not real end users.
+Don't treat `NODE_ENV=production` there as "hands off, real prod" the way you would on an app with
+actual users; check with the user before assuming a pre-launch safety gate should stay off on this
+deploy. This will stop being true once the app actually launches — ask if unsure whether that's
+happened yet.
+
 `TODO.md` in this directory is the **global backlog/roadmap**, one `##` section per repo (moved
 here from `specialist-be/TODO.md` and merged with `specialist-fe/TODO.md` on 2026-09-16 — neither
 repo has its own anymore). Check it during the investigate step of `orchestrate-feature` for
