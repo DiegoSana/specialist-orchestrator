@@ -42,7 +42,12 @@ rather than editing files directly across repos itself.
 involving an API change, a new field, or new UI backed by data), invoke the `orchestrate-feature`
 skill first.** For a change that is obviously confined to one repo (e.g. "fix this admin table's
 column width"), just `cd`/work in that repo directly — don't spin up the orchestration machinery
-for single-repo work.
+for single-repo work. That's about not over-engineering cross-repo coordination, though, not about
+skipping delegation entirely: a single-repo change that's still roughly PR-sized (schema+entity+
+service changes, a multi-file rewrite, a bugfix with tests) should still go to a `fork` with a
+self-contained directive (branch name, exact scope, files, test/lint/build gate, commit convention)
+rather than being implemented inline in this session — keep inline edits for genuinely small,
+exploratory, or tightly interactive work instead.
 
 ## Commands
 
@@ -66,6 +71,9 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
   `diegohsanabria@gmail.com` — check with `git -C <repo> config user.email` before committing; if
   it's unset or shows the azumo address, set it locally (never touch the global config, which is
   intentionally the azumo identity for other projects on this machine).
+- Before creating a new feature branch (`git checkout -b` or `git worktree add ... -b`) in any of
+  the four repos, fetch/pull `main` first and confirm local `main` is current with `origin/main` —
+  do this even for single-repo, non-orchestrated changes, not just cross-repo work.
 - Use one consistent branch name across every repo touched by a given feature (e.g.
   `feat/portfolio-videos` in `specialist-be` **and** `specialist-fe`) so the work is easy to
   correlate later — there's no monorepo tooling tying them together otherwise.
@@ -76,6 +84,10 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
 - Default to **implement + test/lint/build green + commit locally**, then stop and report before
   pushing or opening PRs — one confirmation point for the whole cross-repo change, not four. Push
   and open PRs only once asked (or if the original request already said to).
+- **Exception**: a `TODO.md`-only change in this orchestrator repo can be pushed and PR'd directly,
+  no confirmation round-trip needed — it's low-risk backlog documentation, not a code change. Any
+  other file (`CLAUDE.md`, `.claude/`, or anything in the four sibling repos) still follows the
+  default above.
 
 ## Gotchas
 
