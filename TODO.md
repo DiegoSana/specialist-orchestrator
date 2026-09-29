@@ -20,6 +20,7 @@ actualizan a mano.
 - [🎨 Frontend (specialist-fe)](#-frontend-specialist-fe)
 - [🛠️ Admin (specialist-admin)](#️-admin-specialist-admin)
 - [📦 Shared (specialist-shared)](#-shared-specialist-shared)
+- [🧪 E2E (specialist-e2e)](#-e2e-specialist-e2e)
 
 ---
 
@@ -206,9 +207,16 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 **Limpieza / tests**
 - Scripts duplicados en `package.json` (`db:seed` y `prisma:seed` son el mismo comando).
-- Tests de integración para permisos; tests E2E de flujos críticos (solicitud directa, solicitud
-  pública, moderación de reviews); tests unitarios de `TwilioVerifyService` y del value object
-  `Phone`.
+- ~~Tests E2E de flujos críticos (solicitud directa, solicitud pública, moderación de
+  reviews).~~ **En curso 2026-09-29**: ver sección "🧪 E2E (specialist-e2e)" más abajo. Tests de
+  integración para permisos y tests unitarios de `TwilioVerifyService`/`Phone` siguen pendientes.
+- **Falta el endpoint de limpieza dev-only para `specialist-e2e`**: nuevo endpoint (admin-only +
+  gateado por env var `E2E_TEST_UTILS_ENABLED`, nunca seteada en Fly/producción) que borre en
+  cascada los `Request` cuyo `title` empiece con un prefijo dado (primero su `Review` asociado, que
+  no tiene `onDelete: Cascade`, después el `Request` — mismo orden FK-safe que ya usa
+  `test/test-setup.ts#cleanDatabase`). Hasta que exista, el `global-teardown.ts` de
+  `specialist-e2e` intenta llamarlo, falla silenciosamente (try/catch) y deja los datos `[E2E]` sin
+  limpiar en la DB de dev.
 - `test/scripts/whatsapp/testing/test-single-followup.ts` no cierra el `NestApplicationContext` al
   terminar (visto 2026-09-29): cada corrida deja un proceso `ts-node` colgado dentro del contenedor
   `especialistas-api-dev`. Liviano (~13s CPU cada uno) pero se acumulan si se corre varias veces
@@ -245,9 +253,10 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   transiciones (menor prioridad).
 - Responsive pendiente en ~360px: Job Board, perfil de especialista, formulario de nueva solicitud,
   lista de especialistas interesados.
-- Tests: ampliar cobertura de hooks y de componentes críticos; evaluar adoptar Playwright para E2E
-  (no hay suite hoy, ni acá ni en `specialist-admin`) — definir alcance inicial (login, crear
-  solicitud, expresar interés) y si corre en CI.
+- Tests: ampliar cobertura de hooks y de componentes críticos.
+- ~~Evaluar adoptar Playwright para E2E (no hay suite hoy, ni acá ni en `specialist-admin`) —
+  definir alcance inicial (login, crear solicitud, expresar interés) y si corre en CI.~~ **En
+  curso 2026-09-29**: ver sección "🧪 E2E (specialist-e2e)".
 - Job Board: filtro por palabra clave (trade o nombre del proveedor), con debounce.
 - Company profiles: mostrar tipo de proveedor (Professional/Company) en la lista de interesados;
   página de perfil público de empresa.
@@ -287,3 +296,30 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 ## 📦 Shared (specialist-shared)
 
 Ver "Futuro de `specialist-shared`" en [🎯 Decisión / diseño pendiente](#-decisión--diseño-pendiente).
+
+---
+
+## 🧪 E2E (specialist-e2e)
+
+Repo nuevo (2026-09-29), quinto sibling de este directorio (`gh repo create DiegoSana/specialist-e2e
+--private`), suite Playwright + TypeScript que cubre los flujos core cruzando `specialist-fe` y
+`specialist-admin` contra las cuentas seed fijas de `specialist-be/prisma/seed.ts` (no registra
+usuarios nuevos). Cubre el alcance que pedían las dos entradas de backlog resueltas arriba (Backend
+"tests E2E de flujos críticos", Frontend "evaluar adoptar Playwright").
+
+**Specs**: `auth.spec.ts`, `create-request-public.spec.ts`, `create-request-direct.spec.ts`,
+`job-board-interest.spec.ts` (los cuatro sobre `specialist-fe`), `review-moderation.spec.ts` (cruza
+`specialist-fe` + `specialist-admin`, login → crear solicitud directa → avanzar hasta `FINISHED` →
+dejar review → aprobar/rechazar en `/admin/reviews`).
+
+**Pendiente**
+- El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
+  todavía no existe — hasta que se implemente, los datos `[E2E]` (requests + su cascada) quedan sin
+  borrar en la DB de dev después de cada corrida.
+- CI: el workflow de GitHub Actions queda escrito en el repo pero sin conectar — el checkout
+  cruzado de `specialist-be`/`specialist-fe`/`specialist-admin` (los tres privados) necesita un
+  Personal Access Token nuevo que el usuario tiene que crear a mano y cargar como secret
+  (`CROSS_REPO_PAT`) en `specialist-e2e`. Por ahora la suite solo corre local, contra las tres apps
+  levantadas a mano.
+- Ampliar cobertura más allá del alcance inicial (registro de usuario nuevo, WhatsApp follow-ups,
+  perfiles de empresa) queda para después.
