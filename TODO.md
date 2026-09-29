@@ -105,9 +105,20 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   encogerlo a solo lo que se usa, (3) eliminarlo y mover esas pocas líneas a `specialist-admin`
   (recomendada si solo admin lo sigue consumiendo), (4) generar tipos desde el OpenAPI del backend
   en vez de mantener un espejo manual.
-- **Contenido legal/institucional de `specialist-fe`.** Términos y condiciones, sección "Quiénes
-  somos" y diseño de los links del footer — falta decidir contenido/copy antes de implementar (no
-  es solo maquetación).
+- ~~**Contenido legal/institucional de `specialist-fe`.**~~ **Resuelto 2026-09-29**
+  ([specialist-fe#39](https://github.com/DiegoSana/specialist-fe/pull/39), mergeado). Decisión de
+  contenido (con el usuario): T&C redactados desde cero como boilerplate de etapa MVP con
+  disclaimer visible (plataforma en prueba, razón social a definir); "Quiénes somos" con texto
+  genérico de misión, sin historia personal; "Contacto" con email placeholder marcado para
+  reemplazar cuando se defina un canal real (no existía ningún mecanismo de contacto público en el
+  repo, solo WhatsApp deep-links atados a una solicitud). Nuevas rutas `/about`, `/terms`,
+  `/contact`; `Footer` reusable con esos tres links, visible en toda la app (se agregó a
+  `ProtectedLayout`/`AppLayout` — dashboards, requests, job board, professionals, notifications,
+  profile — y a `login`/`register`, que no tenían shell compartido). Deliberadamente sin footer:
+  `profile-setup`/`company/setup`/`specialist/setup` (onboarding sin chrome por diseño existente) y
+  `auth/callback` (solo redirect). Pendiente real: reemplazar el email placeholder y la razón
+  social cuando existan, y sumar Política de Privacidad si se decide (no estaba en el alcance
+  pedido).
 - ~~**Visibilidad de fotos/videos de solicitudes.**~~ **Decidido 2026-09-24**: sirven para que el
   especialista pueda valuar el trabajo, así que **mientras la solicitud es pública y no tiene
   proveedor asignado**, las fotos/videos son visibles para cualquier usuario autenticado (no
