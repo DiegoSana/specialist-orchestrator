@@ -171,6 +171,11 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   the box.
 
 **Notificaciones / WhatsApp**
+- El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp sobre '{título}'. Sus datos
+  de contacto están acá: {link a /client/requests/:id}" solo linkea al detalle del request en
+  specialist-fe — el usuario tiene que copiar el teléfono a mano y abrir WhatsApp por su cuenta.
+  Cambiar el link (o agregar uno adicional) a un deep link `https://wa.me/<telefono>` (o
+  `https://api.whatsapp.com/send?phone=...`) que abra directo el chat con el proveedor/empresa.
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.
 - Tracking de clicks en el botón de contacto por WhatsApp (para decidir follow-up según si hubo
