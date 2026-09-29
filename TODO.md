@@ -168,6 +168,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   ¿un flag/estado dedicado más allá de `RequestAttentionFlag`?
 - Timestamps por cada cambio de estado de `Request` (hoy solo `createdAt`/`updatedAt`, sin
   historial de transiciones) — requiere migración.
+- Revisar `specialist-be/src/identity/infrastructure/verification/twilio-verify.service.ts`: hace
+  referencia directa a Twilio en vez de estar abstraído detrás de una interfaz de provider
+  (acoplamiento innecesario a un proveedor concreto de verificación/WhatsApp).
 
 **Limpieza / tests**
 - Scripts duplicados en `package.json` (`db:seed` y `prisma:seed` son el mismo comando).
