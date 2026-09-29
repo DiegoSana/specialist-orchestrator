@@ -229,9 +229,14 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Mejorar la vista de detalle de Request (alcance específico por definir). Puntos ya identificados:
   ~~(1) en la grilla de requests, mover la columna status para que quede antes de la columna
   actions~~ **Resuelto 2026-09-28** ([specialist-admin#19](https://github.com/DiegoSana/specialist-admin/pull/19),
-  mergeado); (2) en la vista de detalle, la visualización de imágenes se ve cortada (arreglar el
-  layout/crop); (3) agregar la posibilidad de bloquear una imagen individual desde esa vista
-  (definir si el flag vive en backend o es solo UI de admin).
+  mergeado); ~~(2) en la vista de detalle, la visualización de imágenes se ve cortada (arreglar el
+  layout/crop)~~ **Resuelto 2026-09-29** ([specialist-admin#20](https://github.com/DiegoSana/specialist-admin/pull/20)):
+  miniaturas ahora en `aspect-square` sin recorte fijo, detección de video en `request.photos`
+  (incluye `.mov`) con componente `AuthenticatedVideo` nuevo, y modal de vista completa con
+  navegación prev/next, construido sobre el primer primitivo shadcn del repo (`Dialog`/`Button`,
+  antes `components/ui/` no existía). Validado localmente por el usuario contra backend + seed
+  reales; (3) agregar la posibilidad de bloquear una imagen individual desde esa vista (definir si
+  el flag vive en backend o es solo UI de admin) sigue pendiente, alcance separado.
 - Evaluar qué tan complejo es hacer el admin mobile responsive (hoy no está pensado para mobile).
 - `DEPLOYMENT.md` (raíz) no documenta el deploy de `specialist-admin` en Vercel — solo tiene el
   paso a paso de `specialist-fe`. Agregar la sección equivalente (root directory
