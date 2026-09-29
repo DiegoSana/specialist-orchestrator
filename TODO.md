@@ -171,6 +171,13 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   the box.
 
 **Notificaciones / WhatsApp**
+- Separar el guard de `AdminWhatsAppDevController`: hoy tanto `simulate-reply` como
+  `trigger-followup` requieren `WHATSAPP_PROVIDER=local` (`AdminWhatsAppService.isDevMode()`), así
+  que ambos quedan inaccesibles apenas se usa Twilio real (visto 2026-09-29 al activar Twilio en
+  Fly, specialist-be#81). Tiene sentido para `simulate-reply` (finge un inbound que con Twilio
+  real llega por webhook), pero no para `trigger-followup` ("mandar esta regla ahora" usa el mismo
+  path de envío real y sería útil dejarlo disponible con cualquier provider) — separar los dos
+  guards.
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.
 - Tracking de clicks en el botón de contacto por WhatsApp (para decidir follow-up según si hubo
