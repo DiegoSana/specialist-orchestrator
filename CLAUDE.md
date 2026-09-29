@@ -76,6 +76,10 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
 - Default to **implement + test/lint/build green + commit locally**, then stop and report before
   pushing or opening PRs — one confirmation point for the whole cross-repo change, not four. Push
   and open PRs only once asked (or if the original request already said to).
+- **Exception**: a `TODO.md`-only change in this orchestrator repo can be pushed and PR'd directly,
+  no confirmation round-trip needed — it's low-risk backlog documentation, not a code change. Any
+  other file (`CLAUDE.md`, `.claude/`, or anything in the four sibling repos) still follows the
+  default above.
 
 ## Gotchas
 
