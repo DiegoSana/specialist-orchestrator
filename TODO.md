@@ -172,15 +172,37 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   the box.
 
 **Notificaciones / WhatsApp**
-- **[Prioridad]** Investigar qué pasa cuando un cliente o especialista tiene **varias requests
-  abiertas en simultáneo**: los follow-ups matchean mensajes entrantes por número de teléfono
-  (`findMostRecentByPhone`, ver specialist-be#87 del 2026-09-29, que ya resolvió el caso de una
-  interaction vieja sin responder robando un mensaje nuevo **dentro del mismo request** — esto es
-  el caso más amplio, **entre requests distintos** del mismo teléfono). Si el mismo número tiene
-  follow-ups pendientes en dos requests a la vez, ¿cómo se evita que un mensaje se le asigne al
-  request equivocado? ¿Hay que desambiguar en el propio mensaje (pedirle al usuario que aclare a
-  cuál request se refiere), limitar a un follow-up activo por teléfono a la vez, o algo distinto?
-  Definir el comportamiento esperado antes de tocar código.
+- **[Prioridad, diseño definido 2026-09-29, falta implementar]** Múltiples requests abiertas del
+  mismo teléfono: los follow-ups matchean mensajes entrantes por número de teléfono
+  (`findMostRecentByPhone`), y hoy, si el Request A tiene un follow-up abierto y después se manda
+  uno del Request B al mismo teléfono, una respuesta del usuario siempre se le atribuye a B (el más
+  nuevo) sin relación con el contenido real — A queda huérfano indefinidamente (PR #87 del
+  2026-09-29 solo resolvió el caso *dentro del mismo request*, no este). Comportamiento acordado:
+  1. **Matching de respuestas**: reemplazar `findMostRecentByPhone` por "la interaction más
+     reciente para ese teléfono, sin importar de qué request es" (`ORDER BY createdAt DESC LIMIT
+     1`). Si está `PENDING/SENT/DELIVERED` → se le asigna la respuesta. Si ya está `RESPONDED` (o
+     no hay ninguna) → cae a Soporte (`SupportConversationService`, ya existe). Generaliza y
+     reemplaza la lógica de "supersededByNewerOnSameRequest" de PR #87 (se puede eliminar).
+  2. **Guarda de envío**: no crear un follow-up nuevo para un teléfono si ya se le mandó cualquier
+     follow-up (de cualquier request) hace menos de 24hs — mismo criterio de espaciado que ya usan
+     `checkLegacyGuards`/`checkLadderGuards` (`daysSince < 1`), con scope por teléfono en vez de por
+     request. Deliberadamente una ventana acotada y no un bloqueo indefinido (evita que un teléfono
+     que nunca contesta el primer follow-up deje a sus otros requests sin follow-ups por tiempo
+     indefinido). Sin condición de carrera con el cron horario: `FollowUpSchedulerJob` procesa todo
+     secuencialmente (`for` + `await`, sin `Promise.all`), así que si dos requests vencen en la
+     misma corrida, la guarda ve el estado ya actualizado del primero antes de procesar el segundo.
+     Detalle a resolver al implementar: `metadata.recipientPhone` hoy se graba recién en el
+     dispatch (job separado de 1 min), no en la creación — la guarda debe usar el valor que el
+     scheduler ya resuelve en memoria, no esperar al dispatch.
+  3. Ventana horaria de envío (9-20h): investigada, sin cambios — ya solo aplica al scheduler
+     proactivo, los triggers de admin y el dispatch ya están exentos por diseño, y no hay ningún
+     envío automático reactivo a una respuesta entrante hoy.
+  Archivos: `prisma-request-interaction.repository.ts` (`findMostRecentByPhone`),
+  `follow-up-scheduler.job.ts` (`buildAndScheduleFollowUp`, guarda nueva junto a
+  `hasOpenConversation`), doc comment de `request-interaction.repository.ts`,
+  `docs/guides/whatsapp/README.md` ("Ruteo de mensajes entrantes"). Tests a actualizar:
+  `prisma-request-interaction.repository.spec.ts`, `follow-up-scheduler.job.spec.ts`,
+  `request-interaction.service.spec.ts`.
 - Separar el guard de `AdminWhatsAppDevController`: hoy tanto `simulate-reply` como
   `trigger-followup` requieren `WHATSAPP_PROVIDER=local` (`AdminWhatsAppService.isDevMode()`), así
   que ambos quedan inaccesibles apenas se usa Twilio real (visto 2026-09-29 al activar Twilio en
