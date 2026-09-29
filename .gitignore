@@ -3,6 +3,7 @@
 /specialist-fe/
 /specialist-admin/
 /specialist-shared/
+/specialist-e2e/
 
 .DS_Store
 *.log

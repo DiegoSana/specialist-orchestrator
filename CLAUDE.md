@@ -19,6 +19,13 @@ specialist-shared    Small hand-written TS package (types/schemas/constants/cont
                      Ships via committed dist/ + a raw github: dependency URL, not npm — no
                      monorepo linking, no auto-propagation. Only specialist-admin consumes it,
                      and only after a build+commit+push+reinstall cycle there.
+specialist-e2e       Playwright E2E suite (TypeScript) covering core flows across specialist-fe
+                     (login, crear solicitud pública/directa, expresar/retirar interés) and
+                     specialist-admin (moderación de reviews). Drives the three apps' real local
+                     dev instances (specialist-be :5000, specialist-fe :3001, specialist-admin
+                     :3000) against the fixed seed accounts from specialist-be/prisma/seed.ts —
+                     does not register new users. Cleanup of E2E-created data depends on a
+                     dev-only endpoint in specialist-be that doesn't exist yet (see TODO.md).
 ```
 
 `DEPLOYMENT.md` and `SOCIAL_LOGIN_ARCHITECTURE.md` in this directory describe the deployed
