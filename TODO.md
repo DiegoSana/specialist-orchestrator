@@ -241,6 +241,8 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - `DEPLOYMENT.md` (raíz) no documenta el deploy de `specialist-admin` en Vercel — solo tiene el
   paso a paso de `specialist-fe`. Agregar la sección equivalente (root directory
   `specialist-admin`, `NEXT_PUBLIC_API_URL` con `/api` incluido).
+- En Admin Settings debe figurar información de cómo está configurado el envío de mensajes por
+  WhatsApp, tanto para follow-up como para soporte.
 
 ---
 
