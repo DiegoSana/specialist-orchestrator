@@ -185,12 +185,15 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   pasando por `WhatsAppDispatchJob`/el adapter de provider normal, así que es provider-agnostic y
   seguro de exponer). `simulate-reply` se queda dev-only en `AdminWhatsAppDevController` (fingir un
   inbound contra Twilio real podría desincronizar estado).
-- **[En curso 2026-09-30]** El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp
-  sobre '{título}'. Sus datos de contacto están acá: {link a /client/requests/:id}" solo linkea al
-  detalle del request en specialist-fe — el usuario tiene que copiar el teléfono a mano y abrir
-  WhatsApp por su cuenta. Agregando un deep link `https://wa.me/<telefono>` (contraparte resuelta
-  por dirección: cliente ve el teléfono del proveedor y viceversa) que abra directo el chat, junto
-  al `{link}` existente. Rama `feat/whatsapp-deep-links` en specialist-be.
+- ~~El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp sobre '{título}'. Sus
+  datos de contacto están acá: {link a /client/requests/:id}" solo linkea al detalle del request
+  en specialist-fe.~~ **Resuelto 2026-09-30** (`specialist-be`
+  [#94](https://github.com/DiegoSana/specialist-be/pull/94), `feat/whatsapp-deep-links`, mergeado):
+  agregado `{whatsapp_link}` (`https://wa.me/<telefono>`, contraparte resuelta por dirección —
+  cliente ve el teléfono del proveedor y viceversa, con fallback al `{link}` in-app si el teléfono
+  faltara) junto al `{link}` existente, en `notice_contact_released`
+  (`buildFollowUpVariables()`/`follow-up-variables.ts`). Nueva cobertura de tests
+  (`follow-up-variables.spec.ts`, antes sin spec propio).
 - ~~El mensaje de WhatsApp que avisa que ya se puede calificar al proveedor/empresa no incluye un
   link directo a la pantalla de calificación.~~ **Revisado 2026-09-30, ya estaba resuelto**: el
   template `notice_request_closed` ya incluye `{link}` (mismo builder que el resto,
