@@ -185,14 +185,19 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   pasando por `WhatsAppDispatchJob`/el adapter de provider normal, así que es provider-agnostic y
   seguro de exponer). `simulate-reply` se queda dev-only en `AdminWhatsAppDevController` (fingir un
   inbound contra Twilio real podría desincronizar estado).
-- El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp sobre '{título}'. Sus datos
-  de contacto están acá: {link a /client/requests/:id}" solo linkea al detalle del request en
-  specialist-fe — el usuario tiene que copiar el teléfono a mano y abrir WhatsApp por su cuenta.
-  Cambiar el link (o agregar uno adicional) a un deep link `https://wa.me/<telefono>` (o
-  `https://api.whatsapp.com/send?phone=...`) que abra directo el chat con el proveedor/empresa.
-- El mensaje de WhatsApp que avisa que ya se puede calificar al proveedor/empresa no incluye un
-  link directo a la pantalla de calificación en specialist-fe (el usuario tiene que navegar manual
-  desde el detalle del request) — agregar el link a esa pantalla en el mensaje.
+- **[En curso 2026-09-30]** El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp
+  sobre '{título}'. Sus datos de contacto están acá: {link a /client/requests/:id}" solo linkea al
+  detalle del request en specialist-fe — el usuario tiene que copiar el teléfono a mano y abrir
+  WhatsApp por su cuenta. Agregando un deep link `https://wa.me/<telefono>` (contraparte resuelta
+  por dirección: cliente ve el teléfono del proveedor y viceversa) que abra directo el chat, junto
+  al `{link}` existente. Rama `feat/whatsapp-deep-links` en specialist-be.
+- ~~El mensaje de WhatsApp que avisa que ya se puede calificar al proveedor/empresa no incluye un
+  link directo a la pantalla de calificación.~~ **Revisado 2026-09-30, ya estaba resuelto**: el
+  template `notice_request_closed` ya incluye `{link}` (mismo builder que el resto,
+  `buildFollowUpVariables()` en `follow-up-variables.ts`) al detalle del request
+  (`/es/client|specialist/requests/:id`), que es exactamente donde vive la UI de calificación
+  (`ReviewCtaCard`, inline cuando `status === CLOSED`) — no existe ni hace falta una pantalla de
+  calificación dedicada aparte.
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.
 - Tracking de clicks en el botón de contacto por WhatsApp (para decidir follow-up según si hubo
