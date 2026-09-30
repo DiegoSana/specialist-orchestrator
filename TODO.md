@@ -280,6 +280,11 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   implementar.
 - **BUG**: en la vista de solicitud del cliente, cuando hay varios interesados, el popup de
   detalle del interesado solo abre para el primero de la lista — los demás no abren.
+- **BUG**: en "Mis solicitudes" → tab "Cerrados", el badge/texto dice "Cerrado — dejá tu
+  calificación" aunque el cliente ya haya calificado. Debería distinguir: si falta la calificación
+  del cliente, mostrar el CTA; si el cliente ya calificó pero falta la del otro lado, mostrar
+  "esperando la otra calificación"; si ambos ya calificaron, mostrar la calificación recibida en
+  vez del CTA.
 
 ---
 
