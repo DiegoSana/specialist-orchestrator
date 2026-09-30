@@ -141,3 +141,18 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
   (`CLAUDE_CONFIG_DIR=~/.claude-personal`) triggers on any `$PWD` starting with
   `/var/www/specialist`, so it already covers this directory — no extra setup needed to launch a
   session here under the right account.
+- **A background session's worktree-isolation guard blocks `Edit`/`Write` on a sibling repo's
+  files** (`specialist-be`, `specialist-e2e`, ...) with "This background session hasn't isolated
+  its changes yet. Call EnterWorktree first" — the fix really is to call `EnterWorktree`, not to
+  route around it via `Bash`. Two things that aren't obvious from the tool's own description: (1)
+  it only works once that sibling repo has **at least one commit** — on a genuinely empty repo
+  (e.g. right after `git init` on a brand-new `specialist-*` repo) it fails with "Failed to resolve
+  base branch HEAD"; do the first commit directly in the real checkout, then use `EnterWorktree`
+  for everything after. (2) Call it while `cwd` is inside that **specific sibling repo's**
+  directory — it worktrees whichever repo `cwd` is in, not the orchestrator, which is what you
+  want here (worktreeing the orchestrator itself wouldn't even contain the sibling repos, since
+  they're gitignored, not tracked). (3) `EnterWorktree`'s default "fresh" base branches from local
+  `origin/<default-branch>` tracking refs, which can be stale if this session hasn't fetched
+  recently (e.g. after a PR merged on GitHub since the last fetch) — `git fetch origin main && git
+  rebase origin/main` inside the new worktree before editing, or you'll be building on top of an
+  outdated snapshot without any error telling you so.
