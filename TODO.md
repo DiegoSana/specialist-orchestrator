@@ -162,14 +162,12 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   la URL del pooler, Prisma tira `26000: prepared statement does not exist`; (2) el usuario del
   pooler (`postgres.<ref>`) no sirve para la conexión directa, que usa `postgres` a secas — mezclar
   los dos da `P1000: Authentication failed`.
-- Detectado 2026-09-29 probando Twilio sandbox localmente: `docker-compose.dev.yml` (servicio
-  `app`) nunca recibió el mismo `DIRECT_URL` que se agregó para producción (ver arriba) — el
-  comando de arranque corre `prisma db push`, que valida `directUrl = env("DIRECT_URL")` en
-  `schema.prisma` y no está definido ni en el `environment:` del compose ni en `.env` local, así
-  que el contenedor falla con `P1012` antes de levantar. Agregar una línea `DIRECT_URL: ...`
-  (mismo valor que `DATABASE_URL`, apuntando a `localhost:5432` como el resto del servicio) al
-  `environment:` de `app` en `docker-compose.dev.yml` para que `docker compose up` funcione out of
-  the box.
+- ~~Detectado 2026-09-29 probando Twilio sandbox localmente: `docker-compose.dev.yml` (servicio
+  `app`) nunca recibió el mismo `DIRECT_URL` que se agregó para producción.~~ **Resuelto
+  2026-09-30**: agregada la línea `DIRECT_URL: ...` (mismo valor que `DATABASE_URL`) al
+  `environment:` de `app` en `docker-compose.dev.yml` — encontrado de nuevo al hacer
+  `--force-recreate` del contenedor para la sesión de `specialist-e2e`/follow-ups de WhatsApp (el
+  contenedor venía corriendo desde antes sin pasar por este código, por eso no se había notado).
 
 **Notificaciones / WhatsApp**
 - **[Prioridad, diseño definido 2026-09-29, falta implementar]** Múltiples requests abiertas del
@@ -332,7 +330,16 @@ usuarios nuevos). Cubre el alcance que pedían las dos entradas de backlog resue
 **Specs**: `auth.spec.ts`, `create-request-public.spec.ts`, `create-request-direct.spec.ts`,
 `job-board-interest.spec.ts` (los cuatro sobre `specialist-fe`), `review-moderation.spec.ts` (cruza
 `specialist-fe` + `specialist-admin`, login → crear solicitud directa → avanzar hasta `FINISHED` →
-dejar review → aprobar/rechazar en `/admin/reviews`).
+confirmar (`CLOSED`) → dejar review → aprobar en `/admin/reviews`), `whatsapp-followup.spec.ts`
+(2026-09-30, cruza `specialist-fe` + `specialist-admin`: ciclo de vida completo de una solicitud
+impulsado enteramente por respuestas de WhatsApp simuladas — el admin fuerza cada regla de
+seguimiento desde el panel real "Forzar seguimiento", la respuesta del cliente/proveedor se simula
+pegándole directo al webhook real `POST /api/webhooks/twilio` — agnóstico al provider, confirmado
+por código — en vez del endpoint dev-only `simulate-reply`; `CONTACT_RELEASED → IN_PROGRESS →
+FINISHED → CLOSED`). Los 8 specs verificados en verde juntos contra el stack real. Ese mismo
+mecanismo de respuesta vía webhook reemplazó el uso de `simulate-reply` en
+`fast-forward-request.ts` (usado por `review-moderation.spec.ts`), sacándole la dependencia de
+`WHATSAPP_PROVIDER=local` para esa parte específica.
 
 **Pendiente**
 - El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
@@ -343,5 +350,9 @@ dejar review → aprobar/rechazar en `/admin/reviews`).
   Personal Access Token nuevo que el usuario tiene que crear a mano y cargar como secret
   (`CROSS_REPO_PAT`) en `specialist-e2e`. Por ahora la suite solo corre local, contra las tres apps
   levantadas a mano.
-- Ampliar cobertura más allá del alcance inicial (registro de usuario nuevo, WhatsApp follow-ups,
-  perfiles de empresa) queda para después.
+- `review-moderation.spec.ts` y `whatsapp-followup.spec.ts` necesitan `WHATSAPP_PROVIDER=local` en
+  el `specialist-be` contra el que corren (solo para que el envío *saliente* de `trigger-followup`
+  no intente mandar un WhatsApp real a un teléfono falso del seed — la simulación de respuesta en
+  sí no tiene esa dependencia, ver `specialist-e2e/CLAUDE.md`).
+- Ampliar cobertura más allá del alcance inicial (registro de usuario nuevo, perfiles de empresa)
+  queda para después.
