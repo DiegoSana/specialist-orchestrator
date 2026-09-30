@@ -208,6 +208,14 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   real llega por webhook), pero no para `trigger-followup` ("mandar esta regla ahora" usa el mismo
   path de envío real y sería útil dejarlo disponible con cualquier provider) — separar los dos
   guards.
+- El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp sobre '{título}'. Sus datos
+  de contacto están acá: {link a /client/requests/:id}" solo linkea al detalle del request en
+  specialist-fe — el usuario tiene que copiar el teléfono a mano y abrir WhatsApp por su cuenta.
+  Cambiar el link (o agregar uno adicional) a un deep link `https://wa.me/<telefono>` (o
+  `https://api.whatsapp.com/send?phone=...`) que abra directo el chat con el proveedor/empresa.
+- El mensaje de WhatsApp que avisa que ya se puede calificar al proveedor/empresa no incluye un
+  link directo a la pantalla de calificación en specialist-fe (el usuario tiene que navegar manual
+  desde el detalle del request) — agregar el link a esa pantalla en el mensaje.
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.
 - Tracking de clicks en el botón de contacto por WhatsApp (para decidir follow-up según si hubo
@@ -315,6 +323,12 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   `specialist-admin`, `NEXT_PUBLIC_API_URL` con `/api` incluido).
 - En Admin Settings debe figurar información de cómo está configurado el envío de mensajes por
   WhatsApp, tanto para follow-up como para soporte.
+- Nueva pantalla en el admin, accesible desde la vista de detalle de usuario, que muestre toda su
+  interacción por WhatsApp en orden cronológico: mensajes de los distintos `Request` en los que
+  participó, conversaciones de soporte (`SupportConversation`) y cualquier otra comunicación — hoy
+  no hay ninguna vista que junte todo eso por usuario, solo se puede ver por request individual.
+  Definir de dónde sale la data en specialist-be (probablemente un endpoint nuevo que una
+  `RequestInteraction`/`SupportConversation` por teléfono/usuario) antes de encarar el front.
 
 ---
 
