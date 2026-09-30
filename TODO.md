@@ -278,6 +278,8 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   página de perfil público de empresa.
 - Evaluar eliminar traducciones de quotes (`acceptQuote`, `quote`, `amount`) si no se van a
   implementar.
+- **BUG**: en la vista de solicitud del cliente, cuando hay varios interesados, el popup de
+  detalle del interesado solo abre para el primero de la lista — los demás no abren.
 
 ---
 
