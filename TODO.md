@@ -210,6 +210,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   guards.
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.
+- El mensaje de WhatsApp que avisa que ya se puede calificar al proveedor/empresa no incluye un
+  link directo a la pantalla de calificación en specialist-fe (el usuario tiene que navegar manual
+  desde el detalle del request) — agregar el link a esa pantalla en el mensaje.
 - Tracking de clicks en el botón de contacto por WhatsApp (para decidir follow-up según si hubo
   click sin respuesta).
 - Definir qué pasa cuando la respuesta del usuario al follow-up interactivo no matchea ninguna
