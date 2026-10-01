@@ -214,8 +214,16 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - `DEPLOYMENT.md` (raíz) no documenta el deploy de `specialist-admin` en Vercel — solo tiene el
   paso a paso de `specialist-fe`. Agregar la sección equivalente (root directory
   `specialist-admin`, `NEXT_PUBLIC_API_URL` con `/api` incluido).
-- En Admin Settings debe figurar información de cómo está configurado el envío de mensajes por
-  WhatsApp, tanto para follow-up como para soporte.
+- ~~En Admin Settings debe figurar información de cómo está configurado el envío de mensajes por
+  WhatsApp, tanto para follow-up como para soporte.~~ **Resuelto 2026-09-29**
+  (`specialist-admin` [#21](https://github.com/DiegoSana/specialist-admin/pull/21), mergeado, con
+  companion `specialist-be` [#83](https://github.com/DiegoSana/specialist-be/pull/83)): card
+  "WhatsApp delivery" en `/admin/settings` muestra el provider activo (Twilio/local), el número de
+  origen y un aviso si sigue siendo el número de sandbox por defecto. Un solo provider/número sirve
+  tanto a follow-up como a soporte, así que no hace falta desdoblar la vista por canal. De paso
+  (`specialist-admin` [#25](https://github.com/DiegoSana/specialist-admin/pull/25) +
+  `specialist-be` [#91](https://github.com/DiegoSana/specialist-be/pull/91)) se agregó una segunda
+  card análoga para el provider de verificación de teléfono/email (Twilio/local).
 - Nueva pantalla en el admin, accesible desde la vista de detalle de usuario, que muestre toda su
   interacción por WhatsApp en orden cronológico: mensajes de los distintos `Request` en los que
   participó, conversaciones de soporte (`SupportConversation`) y cualquier otra comunicación — hoy
@@ -258,10 +266,11 @@ stack real.
 - El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
   todavía no existe — hasta que se implemente, los datos `[E2E]` (requests + su cascada) quedan sin
   borrar en la DB de dev después de cada corrida.
-- CI: el workflow de GitHub Actions queda escrito en el repo pero sin conectar — el checkout
-  cruzado de `specialist-be`/`specialist-fe`/`specialist-admin` (los tres privados) necesita un
-  Personal Access Token nuevo que el usuario tiene que crear a mano y cargar como secret
-  (`CROSS_REPO_PAT`) en `specialist-e2e`. Por ahora la suite solo corre local, contra las tres apps
+- CI: todavía no existe ningún workflow de GitHub Actions en el repo (verificado 2026-10-01, no hay
+  directorio `.github/` ni en `main` ni en ninguna rama) — falta escribirlo desde cero. Va a
+  necesitar, además, un Personal Access Token nuevo que el usuario tiene que crear a mano y cargar
+  como secret (`CROSS_REPO_PAT`) para el checkout cruzado de `specialist-be`/`specialist-fe`/
+  `specialist-admin` (los tres privados). Por ahora la suite solo corre local, contra las tres apps
   levantadas a mano.
 - `review-moderation.spec.ts`, `whatsapp-followup.spec.ts` y `review-bidirectional.spec.ts`
   necesitan `WHATSAPP_PROVIDER=local` en el `specialist-be` contra el que corren (solo para que el
