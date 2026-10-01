@@ -1,10 +1,18 @@
 # Rediseño del sistema de reviews/ratings
 
-Estado: **plan aprobado, pendiente de ejecución**. Branch único a usar en todos los repos
-tocados: `feat/bidirectional-reviews`.
+Estado: **implementado y mergeado** (2026-10-01) — `specialist-be`
+[#95](https://github.com/DiegoSana/specialist-be/pull/95),
+[#96](https://github.com/DiegoSana/specialist-be/pull/96) (fix de DI encontrado al correr E2E),
+`specialist-shared` (pusheado directo a `main`, commit `61e4891`), `specialist-fe`
+[#40](https://github.com/DiegoSana/specialist-fe/pull/40), `specialist-admin`
+[#26](https://github.com/DiegoSana/specialist-admin/pull/26), `specialist-e2e`
+[#3](https://github.com/DiegoSana/specialist-e2e/pull/3). Gaps dejados fuera de alcance a
+propósito: timeout de 14 días del doble-ciego sin cobertura E2E (no testeable sin manipular
+tiempo), reviews de proveedor `Company` sin cobertura E2E (cuentas seed no dan pie fácil) — ver
+`TODO.md` sección E2E para el detalle vigente.
 
-Este documento es la especificación completa para implementar el rediseño. Un agente que lo lea
-no necesita más contexto que este archivo + el `CLAUDE.md` de cada repo que le toque.
+Este documento queda como referencia de diseño del feature ya implementado — para el estado actual
+del backlog relacionado, ver `TODO.md` en vez de este archivo.
 
 ## 1. Objetivo
 
