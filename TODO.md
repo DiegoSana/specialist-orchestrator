@@ -186,6 +186,13 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   página de perfil público de empresa (hoy solo existe la pantalla de setup, no una vista pública).
 - Evaluar eliminar traducciones de quotes (`acceptQuote`, `quote`, `amount`) si no se van a
   implementar.
+- **Test roto en `main`, preexistente**: `hooks/__tests__/use-reviews.test.tsx` →
+  `useReviewByRequestId › should return null when no review exists (404)` falla de forma
+  determinística (no es flaky, falla igual corriéndolo solo). Causa: `useReviewByRequestId`
+  (`hooks/use-reviews.ts:100-109`) no atrapa el 404 en su `queryFn` — el query queda en `isError`
+  en vez de resolver `isSuccess` con `data: null` como espera el test. Fix de una línea
+  (`try/catch` alrededor del `apiClient.get`), sin relación con ninguna feature en curso —
+  detectado 2026-10-01 corriendo la suite completa antes de un commit no relacionado.
 - **Cerrar `/professionals` (hoy público, sin auth guard) detrás de login para el MVP**, igual que
   el resto de la app. Decisión PO 2026-10-01: dejar todo privado salvo el landing hasta sumar
   usuarios — mostrar el directorio de profesionales vacío o con pocos registros da peor primera
