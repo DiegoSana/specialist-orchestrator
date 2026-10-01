@@ -284,13 +284,31 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   página de perfil público de empresa.
 - Evaluar eliminar traducciones de quotes (`acceptQuote`, `quote`, `amount`) si no se van a
   implementar.
-- **BUG**: en la vista de solicitud del cliente, cuando hay varios interesados, el popup de
-  detalle del interesado solo abre para el primero de la lista — los demás no abren.
-- **BUG**: en "Mis solicitudes" → tab "Cerrados", el badge/texto dice "Cerrado — dejá tu
+- ~~**BUG**: en la vista de solicitud del cliente, cuando hay varios interesados, el popup de
+  detalle del interesado solo abre para el primero de la lista — los demás no abren.~~
+  **Resuelto 2026-10-01** (rama `fix/interest-modal-and-closed-badge` en ambos repos):
+  `specialist-fe` [#41](https://github.com/DiegoSana/specialist-fe/pull/41), mergeado — causa real:
+  el popup resolvía el perfil completo vía la búsqueda pública del catálogo (`GET /providers`), que
+  filtra por `isVisible`/estado activo/verificado; un especialista que ya había expresado interés
+  podía dejar de cumplir esos filtros después y quedar invisible para `.find()`, así que el modal no
+  abría nada en silencio (no era literalmente "siempre el primero", sino "el que seguía
+  catalog-active"). Ahora busca el perfil directo vía `GET /professionals/:id`/`GET /companies/:id`
+  (sin esos filtros). Requirió un fix chico en `specialist-be`
+  [#97](https://github.com/DiegoSana/specialist-be/pull/97), mergeado —
+  `ProfessionalResponseDto` no exponía `serviceProviderId` (gap preexistente, `CompanyResponseDto`
+  sí lo tenía), necesario para pedir las reviews del profesional.
+- ~~**BUG**: en "Mis solicitudes" → tab "Cerrados", el badge/texto dice "Cerrado — dejá tu
   calificación" aunque el cliente ya haya calificado. Debería distinguir: si falta la calificación
   del cliente, mostrar el CTA; si el cliente ya calificó pero falta la del otro lado, mostrar
   "esperando la otra calificación"; si ambos ya calificaron, mostrar la calificación recibida en
-  vez del CTA.
+  vez del CTA.~~ **Resuelto 2026-10-01** (misma rama de arriba): `specialist-fe`
+  [#41](https://github.com/DiegoSana/specialist-fe/pull/41) — el hint ahora distingue los tres
+  estados usando `Request.myReview`/`counterpartReview` (mismos campos que ya usaba
+  `review-cta-card.tsx` en el detalle). `specialist-be`
+  [#97](https://github.com/DiegoSana/specialist-be/pull/97) — causa real: `GET /requests`
+  (listado) nunca populaba `myReview`/`counterpartReview` por item, solo `GET /requests/:id` lo
+  hacía; se agregó el mismo builder acotado a `status === CLOSED` para no introducir N+1 en el
+  resto.
 
 ---
 
