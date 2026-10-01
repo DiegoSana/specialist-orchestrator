@@ -2,7 +2,9 @@
 
 > Backlog vivo, no historial. Qué se hizo, cuándo y en qué PR vive en el `git log`/PRs mergeados de
 > cada repo (y en el `git log` de este propio archivo, si hace falta reconstruir una versión vieja
-> con contexto). Acá solo se lista lo que sigue **pendiente**.
+> con contexto) y en la memoria del proyecto. Acá solo se lista lo que sigue **pendiente** — los
+> ítems ya resueltos se sacan de este archivo en vez de quedar tachados, para que siga siendo
+> rápido de leer.
 
 Vive en `/var/www/specialist/` (el directorio padre, no es parte de ninguno de los cuatro repos) y
 es el único TODO/roadmap del proyecto. El skill `orchestrate-feature`
@@ -14,6 +16,7 @@ actualizan a mano.
 
 ## Índice
 
+- [🚦 Bloqueantes para lanzamiento (MVP)](#-bloqueantes-para-lanzamiento-mvp)
 - [🆕 Sin investigar](#-sin-investigar)
 - [🎯 Decisión / diseño pendiente](#-decisión--diseño-pendiente)
 - [🔧 Backend (specialist-be)](#-backend-specialist-be)
@@ -24,71 +27,44 @@ actualizan a mano.
 
 ---
 
+## 🚦 Bloqueantes para lanzamiento (MVP)
+
+Vista curada de lo que un relevamiento de producto (2026-10-01) identificó como necesario antes de
+abrir la app a usuarios reales — no son features nuevas, son cierres sobre lo que ya existe. Cada
+ítem vive en detalle en su sección de abajo; esto es solo el resumen priorizado.
+
+1. **Recuperación de contraseña ("olvidé mi contraseña").** No existe ningún flujo — el registro
+   soporta email+password además de social login, pero no hay forma de recuperar acceso si se
+   pierde la contraseña. Cross-repo BE+FE, candidato a `orchestrate-feature` — ver "🆕 Sin
+   investigar".
+2. **Aprobar templates de WhatsApp en Meta/Twilio para producción.** Todo el flujo de seguimiento
+   del pedido (liberación de contacto, avisos de cierre/calificación, etc.) depende de templates
+   que hoy solo están habilitados para testing. No es tarea de código — gestión externa en Meta
+   Business Manager/Twilio — pero sin esto el flujo central del producto no funciona con usuarios
+   reales. Ver Backend → Notificaciones/WhatsApp.
+3. **Contenido legal con placeholders reales por completar.** Email de contacto y razón social en
+   T&C/Contacto siguen siendo placeholders de etapa MVP — ver "🎯 Decisión / diseño pendiente".
+4. **Validación de Company sin definir** (CUIT/AFIP/documentación). Si las empresas van a operar
+   como proveedores desde el día uno, hoy no hay ninguna verificación de que existan realmente —
+   ver "🎯 Decisión / diseño pendiente".
+5. **Rate limiting ausente en toda la API**, incluyendo login/registro y el webhook público de
+   WhatsApp (sin JWT). Riesgo de abuso día uno, no deuda técnica de largo plazo — ver Backend →
+   Seguridad.
+
+---
+
 ## 🆕 Sin investigar
 
 Pedidos directos del usuario, todavía no investigados — candidatos para `orchestrate-feature`.
 
-1. ~~**[BE+FE] Bloquear multi-perfil de usuario para el MVP.**~~ **Resuelto 2026-09-24** (rama
-   `feat/block-multi-profile-mvp` en ambos repos): `specialist-be`
-   [#74](https://github.com/DiegoSana/specialist-be/pull/74), mergeado — `UserEntity.canCreate
-   ProfessionalProfile()`/`canCreateCompanyProfile()` (antes código muerto) ahora implementan la
-   regla simétrica (cliente puro bloqueado; quien ya es profesional o empresa puede crear el otro
-   tipo de proveedor aunque también tenga perfil cliente) y se hacen cumplir en
-   `ProfessionalService.createProfile`/`CompanyService.createProfile` (403). `specialist-fe`
-   [#31](https://github.com/DiegoSana/specialist-fe/pull/31), mergeado — `profile/page.tsx` oculta
-   por completo las secciones "Perfil de Especialista"/"Perfil de Empresa" (no solo el botón) para
-   un usuario cliente puro; vuelven a aparecer solas cuando se permita multi-perfil post-MVP
-   (gateado por el mismo `isPureClient`). El flujo "especialista registra su empresa" se investigó
-   y no tenía ningún bug — ya funcionaba de punta a punta antes de este cambio y sigue funcionando
-   después, gracias a la regla simétrica.
-2. ~~**[FE, posiblemente BE] Social login: bloquear navegación sin perfil elegido.**~~ **Resuelto
-   2026-09-24** (`specialist-fe` [#32](https://github.com/DiegoSana/specialist-fe/pull/32),
-   mergeado, sin cambios de backend). Causa: `hooks/use-require-profile.ts` ya implementaba el
-   redirect correcto pero era código muerto (no se usaba en ningún lado); `notifications/page.tsx`
-   y `profile/page.tsx` renderizaban con `AppLayout` (sin ningún guard) en vez de `ProtectedLayout`
-   como el resto de las páginas autenticadas. Se reescribió el hook (resuelve el usuario en un
-   efecto para evitar hydration mismatch, redirige a `/login` si no hay sesión y a
-   `/profile-setup` si no hay ningún perfil) y se enganchó en esas dos páginas. De paso, arreglado
-   un bug chico encontrado en el camino: `profile-setup/page.tsx` no contemplaba
-   `hasCompanyProfile` al decidir si el usuario ya tenía perfil (un usuario solo-empresa veía la
-   pantalla de selección de rol de nuevo).
-3. ~~**[FE] Nueva solicitud: destacar el beneficio de agregar fotos + mejores prácticas.**~~
-   **Resuelto 2026-09-24** (`specialist-fe` [#33](https://github.com/DiegoSana/specialist-fe/pull/33),
-   `specialist-be` [#75](https://github.com/DiegoSana/specialist-be/pull/75), ambos mergeados). La
-   subida de fotos en "nueva solicitud" era un placeholder no funcional ("próximamente") — se
-   implementó de punta a punta: banner de beneficio bien visible, lista de mejores prácticas, modal
-   opcional si se envía sin fotos, y soporte real de fotos **y video** (multi-selección, hasta 6
-   archivos). En el camino se encontraron y arreglaron 3 bugs reales, ninguno introducido por esta
-   sesión: (1) `request-photo` nunca permitía video en el backend, tirando 500 en vez de subir (BE
-   #75); (2) subir antes de crear la solicitud daba 403 porque el storage no tiene metadata en
-   base de datos — se resolvió subiendo fotos/videos recién después de creada la solicitud (mismo
-   patrón que ya usa la pantalla de detalle), no tocando la lógica frágil de permisos; (3) al regex
-   de detección de video le faltaba `.mov` (el formato que graba un iPhone por default), rompiendo
-   silenciosamente esos videos también en la pantalla de detalle ya en producción. Además: si un
-   archivo excede el tamaño máximo (10MB foto / 100MB video) ahora avisa al elegirlo, y si falla
-   adjuntar algo después de crear la solicitud ya no navega en silencio — muestra qué falló y por
-   qué. **Pendiente**: click-through manual con backend real (no se hizo esta sesión).
-4. ~~**[BE, bug] Permisos de imágenes/archivos: el admin recibe "access denied".**~~ **Resuelto
-   2026-09-24** (`specialist-admin` [#18](https://github.com/DiegoSana/specialist-admin/pull/18),
-   mergeado). No era un bug de backend: `FileAccessGuard`/`canAccessFile()` en `specialist-be` ya
-   le daban acceso total al admin. La causa real era en `specialist-admin`:
-   `app/admin/requests/[id]/page.tsx` mostraba las fotos (privadas, `storage/private/...`) con un
-   `<img src>` plano, que el navegador pide sin el header `Authorization` — el backend lo trataba
-   como no autenticado y devolvía 403. Se portó el patrón que `specialist-fe` ya usa para esto
-   (`AuthenticatedImage`: fetch con bearer token + blob URL) a este repo. **Pendiente**: click-through
-   manual en el navegador con una solicitud que tenga fotos privadas — no se hizo en esta sesión
-   (este repo no tiene suite de tests).
-5. ~~**[BE+FE] Configuración de visibilidad para especialistas y empresas.**~~ **Resuelto
-   2026-09-28** (rama `feat/provider-visibility-toggle` en ambos repos): `specialist-be`
-   [#79](https://github.com/DiegoSana/specialist-be/pull/79), mergeado — campo `isVisible: Boolean
-   @default(true)` agregado a `Professional` y `Company`, editable por el dueño vía
-   `PATCH /professionals/me`/`/companies/me`, filtrado (`where.isVisible = true`) en
-   `search()` de ambos repositorios — cubre búsqueda pública y selección de destinatario para
-   solicitudes directas (mismo código). No afecta `findById` directo, `Request.providerId` ni
-   `RequestInterest` ya existentes; listados de admin usan un query path separado y no se tocaron.
-   `specialist-fe` [#38](https://github.com/DiegoSana/specialist-fe/pull/38), mergeado — toggle en
-   `profile/page.tsx` (secciones "Perfil de Especialista"/"Perfil de Empresa"), clonando el patrón
-   visual del opt-out de WhatsApp.
+1. **[BE+FE] Recuperación de contraseña ("olvidé mi contraseña").** No existe ningún flujo —
+   `specialist-be/src/identity/presentation/auth.controller.ts` solo expone `register`/`login`
+   (además de Google/Facebook OAuth), sin endpoint de reset ni envío de email. El registro sí
+   soporta email+password (no es solo social login), así que cualquier usuario que pierda su
+   contraseña queda sin acceso permanente. Bloqueante para lanzar con usuarios reales — ver "🚦
+   Bloqueantes para lanzamiento".
+
+---
 
 ## 🎯 Decisión / diseño pendiente
 
@@ -99,46 +75,33 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   `specialist-be/docs/architecture/PROFILE_ACTIVATION_ORCHESTRATION.md` y ADR-006
   (`docs/decisions/ADR-006-REQUEST-STATE-MACHINE.md`).
 - **Validaciones extra de Company.** Definir primero qué se exige (CUIT, AFIP, documentación) antes
-  de implementar.
+  de implementar — bloqueante para lanzar si las empresas operan como proveedores desde el día uno
+  (ver "🚦 Bloqueantes para lanzamiento").
 - **Futuro de `specialist-shared`.** Solo `specialist-admin` lo consume, y solo para
   `loginSchema`/`LoginDTO`/`AuthResponse` — el resto (`AdminContract`, `User`, etc.) no tiene uso
   real hoy. Opciones: (1) adoptarlo de verdad (requeriría que `specialist-fe` también lo use), (2)
   encogerlo a solo lo que se usa, (3) eliminarlo y mover esas pocas líneas a `specialist-admin`
   (recomendada si solo admin lo sigue consumiendo), (4) generar tipos desde el OpenAPI del backend
   en vez de mantener un espejo manual.
-- ~~**Contenido legal/institucional de `specialist-fe`.**~~ **Resuelto 2026-09-29**
-  ([specialist-fe#39](https://github.com/DiegoSana/specialist-fe/pull/39), mergeado). Decisión de
-  contenido (con el usuario): T&C redactados desde cero como boilerplate de etapa MVP con
-  disclaimer visible (plataforma en prueba, razón social a definir); "Quiénes somos" con texto
-  genérico de misión, sin historia personal; "Contacto" con email placeholder marcado para
-  reemplazar cuando se defina un canal real (no existía ningún mecanismo de contacto público en el
-  repo, solo WhatsApp deep-links atados a una solicitud). Nuevas rutas `/about`, `/terms`,
-  `/contact`; `Footer` reusable con esos tres links, visible en toda la app (se agregó a
-  `ProtectedLayout`/`AppLayout` — dashboards, requests, job board, professionals, notifications,
-  profile — y a `login`/`register`, que no tenían shell compartido). Deliberadamente sin footer:
-  `profile-setup`/`company/setup`/`specialist/setup` (onboarding sin chrome por diseño existente) y
-  `auth/callback` (solo redirect). Pendiente real: reemplazar el email placeholder y la razón
-  social cuando existan, y sumar Política de Privacidad si se decide (no estaba en el alcance
-  pedido).
-- ~~**Visibilidad de fotos/videos de solicitudes.**~~ **Decidido 2026-09-24**: sirven para que el
-  especialista pueda valuar el trabajo, así que **mientras la solicitud es pública y no tiene
-  proveedor asignado**, las fotos/videos son visibles para cualquier usuario autenticado (no
-  anónimo). **En el momento en que se asigna un proveedor** (`providerId`, sea profesional o
-  empresa), las fotos pasan a ser privadas — solo las ve el cliente, ese proveedor asignado, y los
-  admins; el resto de especialistas (incluso los que expresaron interés) pierde el acceso ahí
-  mismo. Las solicitudes **directas** (no públicas, dirigidas a un especialista puntual) son
-  privadas desde el vamos, sin la ventana pública. Implementado en `specialist-be`
-  (`fix/request-photo-privacy`, ver Backend) y reflejado en el mensaje informativo del formulario de
-  nueva solicitud en `specialist-fe`.
+- **Email de contacto y razón social de `specialist-fe` siguen siendo placeholders** (T&C/Contacto,
+  `specialist-fe`#39, 2026-09-29) — definir el canal real y la razón social, y decidir si sumar
+  Política de Privacidad (no estaba en el alcance original). Bloqueante para lanzar — ver "🚦
+  Bloqueantes para lanzamiento".
 
 ---
 
 ## 🔧 Backend (specialist-be)
 
+**Seguridad**
+- **Rate limiting ausente en toda la API**, incluyendo login/registro y el webhook público de
+  WhatsApp (`POST /api/webhooks/twilio`, sin JWT). Bloqueante antes de exponer la app a tráfico
+  real — ver "🚦 Bloqueantes para lanzamiento". (Validación de inputs más estricta y audit log de
+  acciones administrativas siguen como mejoras post-MVP, ver "Ideas futuras" abajo.)
+
 **Bugs / permisos**
 - Verificar acceso a solicitudes completadas mostradas en perfiles públicos de otros especialistas.
 - Revisar validación de permisos en fotos de solicitudes (¿son públicas las de un trabajo
-  completado? ¿quién ve las de uno en progreso?) — relacionado con el bug de admin de arriba.
+  completado? ¿quién ve las de uno en progreso?).
 - `prisma migrate dev` roto por orden del historial de migraciones:
   `20250127000000_add_request_interactions` ordena antes que `20251215200251_init` pero depende de
   una tabla que recién crea `init`, falla con `P3006` en cualquier bootstrap desde cero (DB nueva,
@@ -150,57 +113,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   `docs/guides/MIGRATION_GUIDE.md`.
 - Decidir si mantener o eliminar `quoteAmount`/`quoteNotes` en `Request` (hoy sin uso, no es MVP).
 
-**Deploy / performance**
-- ~~Reportado 2026-09-24: la API en Fly.io se sentía lenta en *todos* los requests.~~ **Resuelto
-  2026-09-24**: región movida de `gru` (São Paulo) a `lax` (Los Ángeles, cerca del proyecto de
-  Supabase en `us-west-2`), `DATABASE_URL` apuntado al pooler de Supabase (6543) con
-  `?pgbouncer=true`, `DIRECT_URL` (conexión directa 5432) agregado para las migraciones, y
-  `min_machines_running: 1` para sacar los cold starts. Mergeado en
-  [specialist-be#76](https://github.com/DiegoSana/specialist-be/pull/76) y deployado con éxito
-  (CI verde, health check 200, release sin errores). Dos gotchas de Supabase que costaron un
-  intento fallido cada uno, documentados en la memoria del proyecto: (1) sin `?pgbouncer=true` en
-  la URL del pooler, Prisma tira `26000: prepared statement does not exist`; (2) el usuario del
-  pooler (`postgres.<ref>`) no sirve para la conexión directa, que usa `postgres` a secas — mezclar
-  los dos da `P1000: Authentication failed`.
-- ~~Detectado 2026-09-29 probando Twilio sandbox localmente: `docker-compose.dev.yml` (servicio
-  `app`) nunca recibió el mismo `DIRECT_URL` que se agregó para producción.~~ **Resuelto
-  2026-09-30**: agregada la línea `DIRECT_URL: ...` (mismo valor que `DATABASE_URL`) al
-  `environment:` de `app` en `docker-compose.dev.yml` — encontrado de nuevo al hacer
-  `--force-recreate` del contenedor para la sesión de `specialist-e2e`/follow-ups de WhatsApp (el
-  contenedor venía corriendo desde antes sin pasar por este código, por eso no se había notado).
-
 **Notificaciones / WhatsApp**
-- ~~**Múltiples requests abiertas del mismo teléfono.**~~ **Resuelto 2026-09-29**
-  (`specialist-be` [#88](https://github.com/DiegoSana/specialist-be/pull/88),
-  `fix/whatsapp-followup-phone-matching`, mergeado): `findMostRecentByPhone` ahora matchea "la
-  interaction más reciente para ese teléfono, sin importar de qué request es"; reemplaza y elimina
-  la lógica de "supersededByNewerOnSameRequest" de PR #87. Guarda de espaciado por teléfono
-  agregada (`WHATSAPP_REPLY_MATCH_WINDOW_DAYS`, default 14 días) junto a `hasOpenConversation` en
-  `follow-up-scheduler.job.ts`. Tests actualizados en `prisma-request-interaction.repository.spec.ts`,
-  `request-interaction.service.spec.ts`.
-- ~~**Separar el guard de `AdminWhatsAppDevController`.**~~ **Resuelto 2026-09-29**
-  (`specialist-be` [#84](https://github.com/DiegoSana/specialist-be/pull/84),
-  `feat/whatsapp-trigger-followup-any-provider`, mergeado): `trigger-followup` se movió al
-  `AdminWhatsAppController` siempre-registrado y perdió el gate de dev-mode (el envío real sigue
-  pasando por `WhatsAppDispatchJob`/el adapter de provider normal, así que es provider-agnostic y
-  seguro de exponer). `simulate-reply` se queda dev-only en `AdminWhatsAppDevController` (fingir un
-  inbound contra Twilio real podría desincronizar estado).
-- ~~El mensaje de WhatsApp "Ya podés hablar con {proveedor} por WhatsApp sobre '{título}'. Sus
-  datos de contacto están acá: {link a /client/requests/:id}" solo linkea al detalle del request
-  en specialist-fe.~~ **Resuelto 2026-09-30** (`specialist-be`
-  [#94](https://github.com/DiegoSana/specialist-be/pull/94), `feat/whatsapp-deep-links`, mergeado):
-  agregado `{whatsapp_link}` (`https://wa.me/<telefono>`, contraparte resuelta por dirección —
-  cliente ve el teléfono del proveedor y viceversa, con fallback al `{link}` in-app si el teléfono
-  faltara) junto al `{link}` existente, en `notice_contact_released`
-  (`buildFollowUpVariables()`/`follow-up-variables.ts`). Nueva cobertura de tests
-  (`follow-up-variables.spec.ts`, antes sin spec propio).
-- ~~El mensaje de WhatsApp que avisa que ya se puede calificar al proveedor/empresa no incluye un
-  link directo a la pantalla de calificación.~~ **Revisado 2026-09-30, ya estaba resuelto**: el
-  template `notice_request_closed` ya incluye `{link}` (mismo builder que el resto,
-  `buildFollowUpVariables()` en `follow-up-variables.ts`) al detalle del request
-  (`/es/client|specialist/requests/:id`), que es exactamente donde vive la UI de calificación
-  (`ReviewCtaCard`, inline cuando `status === CLOSED`) — no existe ni hace falta una pantalla de
-  calificación dedicada aparte.
+- **Aprobar templates de WhatsApp en Meta/Twilio para producción** (hoy solo habilitados para
+  testing) — ver "🚦 Bloqueantes para lanzamiento".
 - Notificar a clientes cuando un proveedor cambia teléfono o email, para los requests activos donde
   participa.
 - Tracking de clicks en el botón de contacto por WhatsApp (para decidir follow-up según si hubo
@@ -223,9 +138,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 **Limpieza / tests**
 - Scripts duplicados en `package.json` (`db:seed` y `prisma:seed` son el mismo comando).
-- ~~Tests E2E de flujos críticos (solicitud directa, solicitud pública, moderación de
-  reviews).~~ **Resuelto 2026-10-01**: ver sección "🧪 E2E (specialist-e2e)" más abajo. Tests de
-  integración para permisos y tests unitarios de `TwilioVerifyService`/`Phone` siguen pendientes.
+- Tests de integración para permisos y tests unitarios de `TwilioVerifyService`/`Phone` (el resto —
+  E2E de flujos críticos: solicitud directa, pública, moderación de reviews — ya está cubierto, ver
+  "🧪 E2E").
 - **Falta el endpoint de limpieza dev-only para `specialist-e2e`**: nuevo endpoint (admin-only +
   gateado por env var `E2E_TEST_UTILS_ENABLED`, nunca seteada en Fly/producción) que borre en
   cascada los `Request` cuyo `title` empiece con un prefijo dado (el `Review` asociado ya tiene
@@ -236,9 +151,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - **El test suite nunca bootea la app real de Nest** (los tests unitarios mockean el wiring de
   módulos) — un `forwardRef` faltante en `ReputationModule`/`ReviewService` pasó 851 tests y el
   build del PR de reviews bidireccional sin ser detectado, y solo se encontró al levantar el
-  backend de verdad para correr E2E (fix en PR #96). Evaluar agregar un smoke test liviano que
-  compile el `AppModule` completo (`Test.createTestingModule({imports: [AppModule]}).compile()`) a
-  la suite, para agarrar este tipo de error de DI/import circular antes de mergear.
+  backend de verdad para correr E2E. Evaluar agregar un smoke test liviano que compile el
+  `AppModule` completo (`Test.createTestingModule({imports: [AppModule]}).compile()`) a la suite,
+  para agarrar este tipo de error de DI/import circular antes de mergear.
 - `test/scripts/whatsapp/testing/test-single-followup.ts` no cierra el `NestApplicationContext` al
   terminar (visto 2026-09-29): cada corrida deja un proceso `ts-node` colgado dentro del contenedor
   `especialistas-api-dev`. Liviano (~13s CPU cada uno) pero se acumulan si se corre varias veces
@@ -251,8 +166,8 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   empleados.
 - Performance: revisar N+1 en listados, caché de perfiles públicos, optimizar queries de
   notificaciones.
-- Seguridad: rate limiting por endpoint, validación de inputs más estricta, audit log de acciones
-  administrativas.
+- Seguridad: validación de inputs más estricta, audit log de acciones administrativas (el rate
+  limiting ya no es "futuro" — ver sección Seguridad arriba).
 - Mecanismo de soporte in-app (botón "reportar un problema" / chat con admin desde el detalle de un
   request) — evaluar si conviene unificarlo con el soporte por WhatsApp ya existente en vez de tener
   dos canales separados.
@@ -262,8 +177,6 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 ## 🎨 Frontend (specialist-fe)
 
-- ~~**`npm run lint` roto**~~ **Resuelto** (`specialist-fe` PR #34, `fix/lint-next16`, mergeado):
-  reemplazado `next lint` por flat config de ESLint nativo, compatible con Next 16.
 - Manejo de 403 al acceder a una solicitud por URL directa: confirmar que el FE muestra un mensaje
   apropiado (hoy el backend ya devuelve el código correcto).
 - Revisar completitud de traducciones `es`/`en` (`messages/*.json`) — keys candidatas a faltar,
@@ -273,42 +186,15 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - UX: loading states consistentes (skeletons en vez de spinners), empty states con
   call-to-action, optimistic updates en acciones frecuentes, toast notifications, animaciones y
   transiciones (menor prioridad).
-- Responsive pendiente en ~360px: Job Board, perfil de especialista, formulario de nueva solicitud,
-  lista de especialistas interesados.
+- **Responsive roto a ~360px** en pantallas core: Job Board, perfil de especialista, formulario de
+  nueva solicitud, lista de especialistas interesados — si el canal principal es mobile, afecta el
+  flujo central, no una pantalla secundaria.
 - Tests: ampliar cobertura de hooks y de componentes críticos.
-- ~~Evaluar adoptar Playwright para E2E (no hay suite hoy, ni acá ni en `specialist-admin`) —
-  definir alcance inicial (login, crear solicitud, expresar interés) y si corre en CI.~~ **En
-  curso 2026-09-29**: ver sección "🧪 E2E (specialist-e2e)".
 - Job Board: filtro por palabra clave (trade o nombre del proveedor), con debounce.
 - Company profiles: mostrar tipo de proveedor (Professional/Company) en la lista de interesados;
-  página de perfil público de empresa.
+  página de perfil público de empresa (hoy solo existe la pantalla de setup, no una vista pública).
 - Evaluar eliminar traducciones de quotes (`acceptQuote`, `quote`, `amount`) si no se van a
   implementar.
-- ~~**BUG**: en la vista de solicitud del cliente, cuando hay varios interesados, el popup de
-  detalle del interesado solo abre para el primero de la lista — los demás no abren.~~
-  **Resuelto 2026-10-01** (rama `fix/interest-modal-and-closed-badge` en ambos repos):
-  `specialist-fe` [#41](https://github.com/DiegoSana/specialist-fe/pull/41), mergeado — causa real:
-  el popup resolvía el perfil completo vía la búsqueda pública del catálogo (`GET /providers`), que
-  filtra por `isVisible`/estado activo/verificado; un especialista que ya había expresado interés
-  podía dejar de cumplir esos filtros después y quedar invisible para `.find()`, así que el modal no
-  abría nada en silencio (no era literalmente "siempre el primero", sino "el que seguía
-  catalog-active"). Ahora busca el perfil directo vía `GET /professionals/:id`/`GET /companies/:id`
-  (sin esos filtros). Requirió un fix chico en `specialist-be`
-  [#97](https://github.com/DiegoSana/specialist-be/pull/97), mergeado —
-  `ProfessionalResponseDto` no exponía `serviceProviderId` (gap preexistente, `CompanyResponseDto`
-  sí lo tenía), necesario para pedir las reviews del profesional.
-- ~~**BUG**: en "Mis solicitudes" → tab "Cerrados", el badge/texto dice "Cerrado — dejá tu
-  calificación" aunque el cliente ya haya calificado. Debería distinguir: si falta la calificación
-  del cliente, mostrar el CTA; si el cliente ya calificó pero falta la del otro lado, mostrar
-  "esperando la otra calificación"; si ambos ya calificaron, mostrar la calificación recibida en
-  vez del CTA.~~ **Resuelto 2026-10-01** (misma rama de arriba): `specialist-fe`
-  [#41](https://github.com/DiegoSana/specialist-fe/pull/41) — el hint ahora distingue los tres
-  estados usando `Request.myReview`/`counterpartReview` (mismos campos que ya usaba
-  `review-cta-card.tsx` en el detalle). `specialist-be`
-  [#97](https://github.com/DiegoSana/specialist-be/pull/97) — causa real: `GET /requests`
-  (listado) nunca populaba `myReview`/`counterpartReview` por item, solo `GET /requests/:id` lo
-  hacía; se agregó el mismo builder acotado a `status === CLOSED` para no introducir N+1 en el
-  resto.
 
 ---
 
@@ -322,17 +208,8 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Gestión de solicitudes y de perfiles Profesional/Empresa (acciones administrativas más allá de
   ver).
 - Generar `components/ui/` de shadcn (ya configurado en `components.json`, falta generar).
-- Mejorar la vista de detalle de Request (alcance específico por definir). Puntos ya identificados:
-  ~~(1) en la grilla de requests, mover la columna status para que quede antes de la columna
-  actions~~ **Resuelto 2026-09-28** ([specialist-admin#19](https://github.com/DiegoSana/specialist-admin/pull/19),
-  mergeado); ~~(2) en la vista de detalle, la visualización de imágenes se ve cortada (arreglar el
-  layout/crop)~~ **Resuelto 2026-09-29** ([specialist-admin#20](https://github.com/DiegoSana/specialist-admin/pull/20)):
-  miniaturas ahora en `aspect-square` sin recorte fijo, detección de video en `request.photos`
-  (incluye `.mov`) con componente `AuthenticatedVideo` nuevo, y modal de vista completa con
-  navegación prev/next, construido sobre el primer primitivo shadcn del repo (`Dialog`/`Button`,
-  antes `components/ui/` no existía). Validado localmente por el usuario contra backend + seed
-  reales; (3) agregar la posibilidad de bloquear una imagen individual desde esa vista (definir si
-  el flag vive en backend o es solo UI de admin) sigue pendiente, alcance separado.
+- Vista de detalle de Request: agregar la posibilidad de bloquear una imagen individual (definir si
+  el flag vive en backend o es solo UI de admin).
 - Evaluar qué tan complejo es hacer el admin mobile responsive (hoy no está pensado para mobile).
 - `DEPLOYMENT.md` (raíz) no documenta el deploy de `specialist-admin` en Vercel — solo tiene el
   paso a paso de `specialist-fe`. Agregar la sección equivalente (root directory
@@ -359,27 +236,23 @@ Ver "Futuro de `specialist-shared`" en [🎯 Decisión / diseño pendiente](#-de
 Repo nuevo (2026-09-29), quinto sibling de este directorio (`gh repo create DiegoSana/specialist-e2e
 --private`), suite Playwright + TypeScript que cubre los flujos core cruzando `specialist-fe` y
 `specialist-admin` contra las cuentas seed fijas de `specialist-be/prisma/seed.ts` (no registra
-usuarios nuevos). Cubre el alcance que pedían las dos entradas de backlog resueltas arriba (Backend
-"tests E2E de flujos críticos", Frontend "evaluar adoptar Playwright").
+usuarios nuevos).
 
 **Specs**: `auth.spec.ts`, `create-request-public.spec.ts`, `create-request-direct.spec.ts`,
 `job-board-interest.spec.ts` (los cuatro sobre `specialist-fe`), `review-moderation.spec.ts` (cruza
 `specialist-fe` + `specialist-admin`, smoke test chico de un solo sentido: login → crear solicitud
 directa → avanzar hasta `FINISHED` → confirmar (`CLOSED`) → dejar review → aprobar en
-`/admin/reviews`), `whatsapp-followup.spec.ts` (2026-09-30, cruza `specialist-fe` +
-`specialist-admin`: ciclo de vida completo de una solicitud impulsado enteramente por respuestas de
-WhatsApp simuladas — el admin fuerza cada regla de seguimiento desde el panel real "Forzar
-seguimiento", la respuesta del cliente/proveedor se simula pegándole directo al webhook real
-`POST /api/webhooks/twilio` — agnóstico al provider, confirmado por código — en vez del endpoint
-dev-only `simulate-reply`; `CONTACT_RELEASED → IN_PROGRESS → FINISHED → CLOSED`),
-`review-bidirectional.spec.ts` (2026-10-01, cruza `specialist-fe` + `specialist-admin`: cobertura
+`/admin/reviews`), `whatsapp-followup.spec.ts` (cruza `specialist-fe` + `specialist-admin`: ciclo
+de vida completo de una solicitud impulsado enteramente por respuestas de WhatsApp simuladas — el
+admin fuerza cada regla de seguimiento desde el panel real "Forzar seguimiento", la respuesta del
+cliente/proveedor se simula pegándole directo al webhook real `POST /api/webhooks/twilio` —
+agnóstico al provider — en vez del endpoint dev-only `simulate-reply`;
+`CONTACT_RELEASED → IN_PROGRESS → FINISHED → CLOSED`), `review-bidirectional.spec.ts` (cobertura
 del rediseño de reviews bidireccional — ambas partes califican, doble-ciego oculto hasta que admin
 aprueba las dos reviews, reveal sincrónico, columna "Dirección" y toggle "Destacar" en
 `/admin/reviews`; deja fuera de alcance el timeout de 14 días del doble-ciego y las reviews de
 proveedor `Company`, ver "Pendiente" abajo). Los 9 specs verificados en verde juntos contra el
-stack real. El mecanismo de respuesta vía webhook real reemplazó el uso de `simulate-reply` en
-`fast-forward-request.ts` (usado por `review-moderation.spec.ts` y `review-bidirectional.spec.ts`),
-sacándole la dependencia de `WHATSAPP_PROVIDER=local` para esa parte específica.
+stack real.
 
 **Pendiente**
 - El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
