@@ -33,21 +33,17 @@ Vista curada de lo que un relevamiento de producto (2026-10-01) identificó como
 abrir la app a usuarios reales — no son features nuevas, son cierres sobre lo que ya existe. Cada
 ítem vive en detalle en su sección de abajo; esto es solo el resumen priorizado.
 
-1. **Recuperación de contraseña ("olvidé mi contraseña").** No existe ningún flujo — el registro
-   soporta email+password además de social login, pero no hay forma de recuperar acceso si se
-   pierde la contraseña. Cross-repo BE+FE, candidato a `orchestrate-feature` — ver "🆕 Sin
-   investigar".
-2. **Aprobar templates de WhatsApp en Meta/Twilio para producción.** Todo el flujo de seguimiento
+1. **Aprobar templates de WhatsApp en Meta/Twilio para producción.** Todo el flujo de seguimiento
    del pedido (liberación de contacto, avisos de cierre/calificación, etc.) depende de templates
    que hoy solo están habilitados para testing. No es tarea de código — gestión externa en Meta
    Business Manager/Twilio — pero sin esto el flujo central del producto no funciona con usuarios
    reales. Ver Backend → Notificaciones/WhatsApp.
-3. **Contenido legal con placeholders reales por completar.** Email de contacto y razón social en
+2. **Contenido legal con placeholders reales por completar.** Email de contacto y razón social en
    T&C/Contacto siguen siendo placeholders de etapa MVP — ver "🎯 Decisión / diseño pendiente".
-4. **Validación de Company sin definir** (CUIT/AFIP/documentación). Si las empresas van a operar
+3. **Validación de Company sin definir** (CUIT/AFIP/documentación). Si las empresas van a operar
    como proveedores desde el día uno, hoy no hay ninguna verificación de que existan realmente —
    ver "🎯 Decisión / diseño pendiente".
-5. **Rate limiting ausente en toda la API**, incluyendo login/registro y el webhook público de
+4. **Rate limiting ausente en toda la API**, incluyendo login/registro y el webhook público de
    WhatsApp (sin JWT). Riesgo de abuso día uno, no deuda técnica de largo plazo — ver Backend →
    Seguridad.
 
@@ -57,12 +53,7 @@ abrir la app a usuarios reales — no son features nuevas, son cierres sobre lo 
 
 Pedidos directos del usuario, todavía no investigados — candidatos para `orchestrate-feature`.
 
-1. **[BE+FE] Recuperación de contraseña ("olvidé mi contraseña").** No existe ningún flujo —
-   `specialist-be/src/identity/presentation/auth.controller.ts` solo expone `register`/`login`
-   (además de Google/Facebook OAuth), sin endpoint de reset ni envío de email. El registro sí
-   soporta email+password (no es solo social login), así que cualquier usuario que pierda su
-   contraseña queda sin acceso permanente. Bloqueante para lanzar con usuarios reales — ver "🚦
-   Bloqueantes para lanzamiento".
+(Vacío por ahora.)
 
 ---
 
@@ -265,13 +256,19 @@ agnóstico al provider — en vez del endpoint dev-only `simulate-reply`;
 del rediseño de reviews bidireccional — ambas partes califican, doble-ciego oculto hasta que admin
 aprueba las dos reviews, reveal sincrónico, columna "Dirección" y toggle "Destacar" en
 `/admin/reviews`; deja fuera de alcance el timeout de 14 días del doble-ciego y las reviews de
-proveedor `Company`, ver "Pendiente" abajo). Los 9 specs verificados en verde juntos contra el
-stack real.
+proveedor `Company`, ver "Pendiente" abajo), `password-reset.spec.ts` (2026-10-01: flujo de
+"olvidé mi contraseña" de punta a punta — registra un usuario descartable como única excepción
+documentada a "nunca registra usuarios" ya que resetear la password de una cuenta seed rompería
+specs posteriores en la misma corrida serial, pide el reset, lee el email real desde la API de
+Mailpit, extrae el token, resetea y confirma login con la contraseña nueva). Los 10 specs
+verificados en verde contra el stack real.
 
 **Pendiente**
 - El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
   todavía no existe — hasta que se implemente, los datos `[E2E]` (requests + su cascada) quedan sin
-  borrar en la DB de dev después de cada corrida.
+  borrar en la DB de dev después de cada corrida. Además, ese endpoint solo filtra por prefijo de
+  título de `Request`, no por email — los usuarios descartables que crea `password-reset.spec.ts`
+  (único spec que registra usuarios) tampoco quedan cubiertos hasta que se extienda.
 - CI: todavía no existe ningún workflow de GitHub Actions en el repo (verificado 2026-10-01, no hay
   directorio `.github/` ni en `main` ni en ninguna rama) — falta escribirlo desde cero. Va a
   necesitar, además, un Personal Access Token nuevo que el usuario tiene que crear a mano y cargar
