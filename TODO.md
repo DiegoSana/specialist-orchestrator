@@ -224,15 +224,21 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 **Limpieza / tests**
 - Scripts duplicados en `package.json` (`db:seed` y `prisma:seed` son el mismo comando).
 - ~~Tests E2E de flujos críticos (solicitud directa, solicitud pública, moderación de
-  reviews).~~ **En curso 2026-09-29**: ver sección "🧪 E2E (specialist-e2e)" más abajo. Tests de
+  reviews).~~ **Resuelto 2026-10-01**: ver sección "🧪 E2E (specialist-e2e)" más abajo. Tests de
   integración para permisos y tests unitarios de `TwilioVerifyService`/`Phone` siguen pendientes.
 - **Falta el endpoint de limpieza dev-only para `specialist-e2e`**: nuevo endpoint (admin-only +
   gateado por env var `E2E_TEST_UTILS_ENABLED`, nunca seteada en Fly/producción) que borre en
-  cascada los `Request` cuyo `title` empiece con un prefijo dado (primero su `Review` asociado, que
-  no tiene `onDelete: Cascade`, después el `Request` — mismo orden FK-safe que ya usa
-  `test/test-setup.ts#cleanDatabase`). Hasta que exista, el `global-teardown.ts` de
-  `specialist-e2e` intenta llamarlo, falla silenciosamente (try/catch) y deja los datos `[E2E]` sin
-  limpiar en la DB de dev.
+  cascada los `Request` cuyo `title` empiece con un prefijo dado (el `Review` asociado ya tiene
+  `onDelete: Cascade` desde el rediseño de reviews bidireccional, así que alcanza con borrar el
+  `Request` — mismo orden FK-safe que ya usa `test/test-setup.ts#cleanDatabase`). Hasta que exista,
+  el `global-teardown.ts` de `specialist-e2e` intenta llamarlo, falla silenciosamente (try/catch) y
+  deja los datos `[E2E]` sin limpiar en la DB de dev.
+- **El test suite nunca bootea la app real de Nest** (los tests unitarios mockean el wiring de
+  módulos) — un `forwardRef` faltante en `ReputationModule`/`ReviewService` pasó 851 tests y el
+  build del PR de reviews bidireccional sin ser detectado, y solo se encontró al levantar el
+  backend de verdad para correr E2E (fix en PR #96). Evaluar agregar un smoke test liviano que
+  compile el `AppModule` completo (`Test.createTestingModule({imports: [AppModule]}).compile()`) a
+  la suite, para agarrar este tipo de error de DI/import circular antes de mergear.
 - `test/scripts/whatsapp/testing/test-single-followup.ts` no cierra el `NestApplicationContext` al
   terminar (visto 2026-09-29): cada corrida deja un proceso `ts-node` colgado dentro del contenedor
   `especialistas-api-dev`. Liviano (~13s CPU cada uno) pero se acumulan si se corre varias veces
@@ -340,17 +346,22 @@ usuarios nuevos). Cubre el alcance que pedían las dos entradas de backlog resue
 
 **Specs**: `auth.spec.ts`, `create-request-public.spec.ts`, `create-request-direct.spec.ts`,
 `job-board-interest.spec.ts` (los cuatro sobre `specialist-fe`), `review-moderation.spec.ts` (cruza
-`specialist-fe` + `specialist-admin`, login → crear solicitud directa → avanzar hasta `FINISHED` →
-confirmar (`CLOSED`) → dejar review → aprobar en `/admin/reviews`), `whatsapp-followup.spec.ts`
-(2026-09-30, cruza `specialist-fe` + `specialist-admin`: ciclo de vida completo de una solicitud
-impulsado enteramente por respuestas de WhatsApp simuladas — el admin fuerza cada regla de
-seguimiento desde el panel real "Forzar seguimiento", la respuesta del cliente/proveedor se simula
-pegándole directo al webhook real `POST /api/webhooks/twilio` — agnóstico al provider, confirmado
-por código — en vez del endpoint dev-only `simulate-reply`; `CONTACT_RELEASED → IN_PROGRESS →
-FINISHED → CLOSED`). Los 8 specs verificados en verde juntos contra el stack real. Ese mismo
-mecanismo de respuesta vía webhook reemplazó el uso de `simulate-reply` en
-`fast-forward-request.ts` (usado por `review-moderation.spec.ts`), sacándole la dependencia de
-`WHATSAPP_PROVIDER=local` para esa parte específica.
+`specialist-fe` + `specialist-admin`, smoke test chico de un solo sentido: login → crear solicitud
+directa → avanzar hasta `FINISHED` → confirmar (`CLOSED`) → dejar review → aprobar en
+`/admin/reviews`), `whatsapp-followup.spec.ts` (2026-09-30, cruza `specialist-fe` +
+`specialist-admin`: ciclo de vida completo de una solicitud impulsado enteramente por respuestas de
+WhatsApp simuladas — el admin fuerza cada regla de seguimiento desde el panel real "Forzar
+seguimiento", la respuesta del cliente/proveedor se simula pegándole directo al webhook real
+`POST /api/webhooks/twilio` — agnóstico al provider, confirmado por código — en vez del endpoint
+dev-only `simulate-reply`; `CONTACT_RELEASED → IN_PROGRESS → FINISHED → CLOSED`),
+`review-bidirectional.spec.ts` (2026-10-01, cruza `specialist-fe` + `specialist-admin`: cobertura
+del rediseño de reviews bidireccional — ambas partes califican, doble-ciego oculto hasta que admin
+aprueba las dos reviews, reveal sincrónico, columna "Dirección" y toggle "Destacar" en
+`/admin/reviews`; deja fuera de alcance el timeout de 14 días del doble-ciego y las reviews de
+proveedor `Company`, ver "Pendiente" abajo). Los 9 specs verificados en verde juntos contra el
+stack real. El mecanismo de respuesta vía webhook real reemplazó el uso de `simulate-reply` en
+`fast-forward-request.ts` (usado por `review-moderation.spec.ts` y `review-bidirectional.spec.ts`),
+sacándole la dependencia de `WHATSAPP_PROVIDER=local` para esa parte específica.
 
 **Pendiente**
 - El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
@@ -361,9 +372,13 @@ mecanismo de respuesta vía webhook reemplazó el uso de `simulate-reply` en
   Personal Access Token nuevo que el usuario tiene que crear a mano y cargar como secret
   (`CROSS_REPO_PAT`) en `specialist-e2e`. Por ahora la suite solo corre local, contra las tres apps
   levantadas a mano.
-- `review-moderation.spec.ts` y `whatsapp-followup.spec.ts` necesitan `WHATSAPP_PROVIDER=local` en
-  el `specialist-be` contra el que corren (solo para que el envío *saliente* de `trigger-followup`
-  no intente mandar un WhatsApp real a un teléfono falso del seed — la simulación de respuesta en
-  sí no tiene esa dependencia, ver `specialist-e2e/CLAUDE.md`).
+- `review-moderation.spec.ts`, `whatsapp-followup.spec.ts` y `review-bidirectional.spec.ts`
+  necesitan `WHATSAPP_PROVIDER=local` en el `specialist-be` contra el que corren (solo para que el
+  envío *saliente* de `trigger-followup` no intente mandar un WhatsApp real a un teléfono falso del
+  seed — la simulación de respuesta en sí no tiene esa dependencia, ver `specialist-e2e/CLAUDE.md`).
+- `review-bidirectional.spec.ts` no cubre el timeout de 14 días del doble-ciego (no testeable sin
+  manipular tiempo real, solo se ejercita el reveal sincrónico al aprobar ambas reviews) ni reviews
+  de proveedor `Company` (las cuentas seed fijas no incluyen una company fácil de llevar por todo
+  el ciclo de vida de un request sin agregar seed data nueva).
 - Ampliar cobertura más allá del alcance inicial (registro de usuario nuevo, perfiles de empresa)
   queda para después.
