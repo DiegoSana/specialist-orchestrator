@@ -126,6 +126,16 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Revisar `specialist-be/src/identity/infrastructure/verification/twilio-verify.service.ts`: hace
   referencia directa a Twilio en vez de estar abstraído detrás de una interfaz de provider
   (acoplamiento innecesario a un proveedor concreto de verificación/WhatsApp).
+- **`NotificationDispatchService.dispatchPending()` nunca implementó el branch de WhatsApp**
+  (`dispatch-service.ts`, solo despacha `EMAIL` — el de `WHATSAPP` es un comentario
+  `// WhatsApp pending dispatch comes later.`), a pesar de que `NotificationChannel`/
+  `ExternalNotificationChannel` ya incluyen `WHATSAPP` desde hace tiempo. La notificación de
+  "nuevo pedido matchea tu rubro" (`REQUEST_MATCHING_TRADE_CREATED`, `specialist-be`#100,
+  2026-10-01) necesitaba WhatsApp real y no pudo esperar a que esto se completara, así que manda
+  el mensaje **directo** contra `WhatsAppMessagingPort` desde el propio handler
+  (`requests-notifications.handler.ts`), salteando el pipeline genérico — deuda técnica deliberada
+  y marcada en el código. Cuando se implemente el dispatch real de WhatsApp acá, migrar ese envío
+  para que pase por el pipeline genérico como cualquier otro canal.
 
 **Limpieza / tests**
 - Scripts duplicados en `package.json` (`db:seed` y `prisma:seed` son el mismo comando).
@@ -251,7 +261,13 @@ Repo nuevo (2026-09-29), quinto sibling de este directorio (`gh repo create Dieg
 usuarios nuevos).
 
 **Specs**: `auth.spec.ts`, `create-request-public.spec.ts`, `create-request-direct.spec.ts`,
-`job-board-interest.spec.ts` (los cuatro sobre `specialist-fe`), `review-moderation.spec.ts` (cruza
+`job-board-interest.spec.ts`, `match-notification.spec.ts` (2026-10-01, `specialist-e2e`#5: opt-in
+"avisame cuando haya un pedido para mí" — un profesional opt-in recibe la notificación in-app
+`REQUEST_MATCHING_TRADE_CREATED` al crearse un pedido público que matchea su rubro; opt-in y
+aserción van por API directa, sin depender del toggle de FE; busca el id del pedido recién creado
+vía `findRequestIdByTitle` en vez de navegar la UI del dashboard — con los datos de E2E acumulados
+sin limpiar, esa carrera se puso lo bastante lenta como para superar incluso un
+`test.setTimeout(60_000)`) (los cinco sobre `specialist-fe`), `review-moderation.spec.ts` (cruza
 `specialist-fe` + `specialist-admin`, smoke test chico de un solo sentido: login → crear solicitud
 directa → avanzar hasta `FINISHED` → confirmar (`CLOSED`) → dejar review → aprobar en
 `/admin/reviews`), `whatsapp-followup.spec.ts` (cruza `specialist-fe` + `specialist-admin`: ciclo
@@ -267,7 +283,7 @@ proveedor `Company`, ver "Pendiente" abajo), `password-reset.spec.ts` (2026-10-0
 "olvidé mi contraseña" de punta a punta — registra un usuario descartable como única excepción
 documentada a "nunca registra usuarios" ya que resetear la password de una cuenta seed rompería
 specs posteriores en la misma corrida serial, pide el reset, lee el email real desde la API de
-Mailpit, extrae el token, resetea y confirma login con la contraseña nueva). Los 10 specs
+Mailpit, extrae el token, resetea y confirma login con la contraseña nueva). Los 9 specs
 verificados en verde contra el stack real.
 
 **Pendiente**
@@ -292,3 +308,7 @@ verificados en verde contra el stack real.
   el ciclo de vida de un request sin agregar seed data nueva).
 - Ampliar cobertura más allá del alcance inicial (registro de usuario nuevo, perfiles de empresa)
   queda para después.
+- `match-notification.spec.ts` no verifica el envío de WhatsApp en sí (el handler lo manda directo
+  contra el adapter, salteando el pipeline genérico — ver Backend → Notificaciones/WhatsApp), solo
+  la notificación in-app; suficiente señal por ahora, pero revisar si vale la pena agregar
+  verificación del envío cuando el dispatch genérico de WhatsApp se complete.
