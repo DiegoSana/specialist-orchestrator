@@ -195,6 +195,12 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   página de perfil público de empresa (hoy solo existe la pantalla de setup, no una vista pública).
 - Evaluar eliminar traducciones de quotes (`acceptQuote`, `quote`, `amount`) si no se van a
   implementar.
+- **Cerrar `/professionals` (hoy público, sin auth guard) detrás de login para el MVP**, igual que
+  el resto de la app. Decisión PO 2026-10-01: dejar todo privado salvo el landing hasta sumar
+  usuarios — mostrar el directorio de profesionales vacío o con pocos registros da peor primera
+  impresión que pedir registro antes de navegar. Reabrir como directorio público cuando haya masa
+  crítica de oferta (umbral propuesto: ~15-20 profesionales activos en alguna categoría), ya que
+  ahí sí conviene el SEO/descubrimiento orgánico que hoy se resigna a propósito.
 
 ---
 
