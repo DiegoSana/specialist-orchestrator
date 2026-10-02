@@ -142,13 +142,6 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 - Tests de integración para permisos y tests unitarios de `TwilioVerifyService`/`Phone` (el resto —
   E2E de flujos críticos: solicitud directa, pública, moderación de reviews — ya está cubierto, ver
   "🧪 E2E").
-- **Falta el endpoint de limpieza dev-only para `specialist-e2e`**: nuevo endpoint (admin-only +
-  gateado por env var `E2E_TEST_UTILS_ENABLED`, nunca seteada en Fly/producción) que borre en
-  cascada los `Request` cuyo `title` empiece con un prefijo dado (el `Review` asociado ya tiene
-  `onDelete: Cascade` desde el rediseño de reviews bidireccional, así que alcanza con borrar el
-  `Request` — mismo orden FK-safe que ya usa `test/test-setup.ts#cleanDatabase`). Hasta que exista,
-  el `global-teardown.ts` de `specialist-e2e` intenta llamarlo, falla silenciosamente (try/catch) y
-  deja los datos `[E2E]` sin limpiar en la DB de dev.
 - **El test suite nunca bootea la app real de Nest** (los tests unitarios mockean el wiring de
   módulos) — un `forwardRef` faltante en `ReputationModule`/`ReviewService` pasó 851 tests y el
   build del PR de reviews bidireccional sin ser detectado, y solo se encontró al levantar el
@@ -196,13 +189,6 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   página de perfil público de empresa (hoy solo existe la pantalla de setup, no una vista pública).
 - Evaluar eliminar traducciones de quotes (`acceptQuote`, `quote`, `amount`) si no se van a
   implementar.
-- **Test roto en `main`, preexistente**: `hooks/__tests__/use-reviews.test.tsx` →
-  `useReviewByRequestId › should return null when no review exists (404)` falla de forma
-  determinística (no es flaky, falla igual corriéndolo solo). Causa: `useReviewByRequestId`
-  (`hooks/use-reviews.ts:100-109`) no atrapa el 404 en su `queryFn` — el query queda en `isError`
-  en vez de resolver `isSuccess` con `data: null` como espera el test. Fix de una línea
-  (`try/catch` alrededor del `apiClient.get`), sin relación con ninguna feature en curso —
-  detectado 2026-10-01 corriendo la suite completa antes de un commit no relacionado.
 - **Cerrar `/professionals` (hoy público, sin auth guard) detrás de login para el MVP**, igual que
   el resto de la app. Decisión PO 2026-10-01: dejar todo privado salvo el landing hasta sumar
   usuarios — mostrar el directorio de profesionales vacío o con pocos registros da peor primera
@@ -284,14 +270,19 @@ proveedor `Company`, ver "Pendiente" abajo), `password-reset.spec.ts` (2026-10-0
 documentada a "nunca registra usuarios" ya que resetear la password de una cuenta seed rompería
 specs posteriores en la misma corrida serial, pide el reset, lee el email real desde la API de
 Mailpit, extrae el token, resetea y confirma login con la contraseña nueva). Los 9 specs
-verificados en verde contra el stack real.
+verificados en verde contra el stack real (último full run 2026-10-02, con el endpoint de limpieza
+ya funcionando: borró 84 `Request` `[E2E]` acumuladas de corridas previas sin limpieza).
 
 **Pendiente**
-- El endpoint de limpieza dev-only en `specialist-be` (ver entrada en la sección Backend arriba)
-  todavía no existe — hasta que se implemente, los datos `[E2E]` (requests + su cascada) quedan sin
-  borrar en la DB de dev después de cada corrida. Además, ese endpoint solo filtra por prefijo de
-  título de `Request`, no por email — los usuarios descartables que crea `password-reset.spec.ts`
-  (único spec que registra usuarios) tampoco quedan cubiertos hasta que se extienda.
+- El endpoint de limpieza dev-only solo filtra por prefijo de título de `Request`, no por email —
+  los usuarios descartables que crea `password-reset.spec.ts` (único spec que registra usuarios)
+  no quedan cubiertos hasta que se extienda.
+- No hay forma de correr la suite sin que `global-teardown.ts` intente limpiar al final — útil a
+  veces para inspeccionar la data generada desde el admin después de una corrida. Workaround actual:
+  apagar `E2E_TEST_UTILS_ENABLED` en el backend antes de correr (el teardown ya tolera el 404
+  resultante en silencio, solo warnea). Opción más prolija evaluada y no implementada todavía: un
+  flag propio (ej. `E2E_SKIP_CLEANUP`) que el teardown chequee antes de llamar al endpoint
+  (discutido 2026-10-02).
 - CI: todavía no existe ningún workflow de GitHub Actions en el repo (verificado 2026-10-01, no hay
   directorio `.github/` ni en `main` ni en ninguna rama) — falta escribirlo desde cero. Va a
   necesitar, además, un Personal Access Token nuevo que el usuario tiene que crear a mano y cargar
