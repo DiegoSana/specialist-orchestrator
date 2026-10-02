@@ -43,9 +43,6 @@ abrir la app a usuarios reales — no son features nuevas, son cierres sobre lo 
 3. **Validación de Company sin definir** (CUIT/AFIP/documentación). Si las empresas van a operar
    como proveedores desde el día uno, hoy no hay ninguna verificación de que existan realmente —
    ver "🎯 Decisión / diseño pendiente".
-4. **Rate limiting ausente en toda la API**, incluyendo login/registro y el webhook público de
-   WhatsApp (sin JWT). Riesgo de abuso día uno, no deuda técnica de largo plazo — ver Backend →
-   Seguridad.
 
 ---
 
@@ -82,12 +79,6 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 ---
 
 ## 🔧 Backend (specialist-be)
-
-**Seguridad**
-- **Rate limiting ausente en toda la API**, incluyendo login/registro y el webhook público de
-  WhatsApp (`POST /api/webhooks/twilio`, sin JWT). Bloqueante antes de exponer la app a tráfico
-  real — ver "🚦 Bloqueantes para lanzamiento". (Validación de inputs más estricta y audit log de
-  acciones administrativas siguen como mejoras post-MVP, ver "Ideas futuras" abajo.)
 
 **Bugs / permisos**
 - Verificar acceso a solicitudes completadas mostradas en perfiles públicos de otros especialistas.
@@ -160,8 +151,8 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   empleados.
 - Performance: revisar N+1 en listados, caché de perfiles públicos, optimizar queries de
   notificaciones.
-- Seguridad: validación de inputs más estricta, audit log de acciones administrativas (el rate
-  limiting ya no es "futuro" — ver sección Seguridad arriba).
+- Seguridad: validación de inputs más estricta, audit log de acciones administrativas (rate
+  limiting ya implementado en toda la API — ver `docs/API.md` en `specialist-be`).
 - Mecanismo de soporte in-app (botón "reportar un problema" / chat con admin desde el detalle de un
   request) — evaluar si conviene unificarlo con el soporte por WhatsApp ya existente en vez de tener
   dos canales separados.
