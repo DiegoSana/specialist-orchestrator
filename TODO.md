@@ -129,21 +129,9 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
   para que pase por el pipeline genérico como cualquier otro canal.
 
 **Limpieza / tests**
-- Scripts duplicados en `package.json` (`db:seed` y `prisma:seed` son el mismo comando).
 - Tests de integración para permisos y tests unitarios de `TwilioVerifyService`/`Phone` (el resto —
   E2E de flujos críticos: solicitud directa, pública, moderación de reviews — ya está cubierto, ver
   "🧪 E2E").
-- **El test suite nunca bootea la app real de Nest** (los tests unitarios mockean el wiring de
-  módulos) — un `forwardRef` faltante en `ReputationModule`/`ReviewService` pasó 851 tests y el
-  build del PR de reviews bidireccional sin ser detectado, y solo se encontró al levantar el
-  backend de verdad para correr E2E. Evaluar agregar un smoke test liviano que compile el
-  `AppModule` completo (`Test.createTestingModule({imports: [AppModule]}).compile()`) a la suite,
-  para agarrar este tipo de error de DI/import circular antes de mergear.
-- `test/scripts/whatsapp/testing/test-single-followup.ts` no cierra el `NestApplicationContext` al
-  terminar (visto 2026-09-29): cada corrida deja un proceso `ts-node` colgado dentro del contenedor
-  `especialistas-api-dev`. Liviano (~13s CPU cada uno) pero se acumulan si se corre varias veces
-  seguidas para probar Twilio sandbox — falta un `await app.close()` (o similar) al final del
-  script.
 
 **Ideas futuras (no MVP)**
 - Multi-usuario por empresa (roles), verificación avanzada (AFIP/documentación), transferencia de
@@ -162,12 +150,6 @@ Pedidos directos del usuario, todavía no investigados — candidatos para `orch
 
 ## 🎨 Frontend (specialist-fe)
 
-- Manejo de 403 al acceder a una solicitud por URL directa: confirmar que el FE muestra un mensaje
-  apropiado (hoy el backend ya devuelve el código correcto).
-- Revisar completitud de traducciones `es`/`en` (`messages/*.json`) — keys candidatas a faltar,
-  a re-verificar (puede estar ya resuelto): `navigation.specialists`,
-  `specialist.requestDetail.interestExpressed`, `specialist.requestDetail.interestExpressedDescription`,
-  `specialist.requestDetail.removeInterest`.
 - UX: loading states consistentes (skeletons en vez de spinners), empty states con
   call-to-action, optimistic updates en acciones frecuentes, toast notifications, animaciones y
   transiciones (menor prioridad).
@@ -268,12 +250,6 @@ ya funcionando: borró 84 `Request` `[E2E]` acumuladas de corridas previas sin l
 - El endpoint de limpieza dev-only solo filtra por prefijo de título de `Request`, no por email —
   los usuarios descartables que crea `password-reset.spec.ts` (único spec que registra usuarios)
   no quedan cubiertos hasta que se extienda.
-- No hay forma de correr la suite sin que `global-teardown.ts` intente limpiar al final — útil a
-  veces para inspeccionar la data generada desde el admin después de una corrida. Workaround actual:
-  apagar `E2E_TEST_UTILS_ENABLED` en el backend antes de correr (el teardown ya tolera el 404
-  resultante en silencio, solo warnea). Opción más prolija evaluada y no implementada todavía: un
-  flag propio (ej. `E2E_SKIP_CLEANUP`) que el teardown chequee antes de llamar al endpoint
-  (discutido 2026-10-02).
 - CI: todavía no existe ningún workflow de GitHub Actions en el repo (verificado 2026-10-01, no hay
   directorio `.github/` ni en `main` ni en ninguna rama) — falta escribirlo desde cero. Va a
   necesitar, además, un Personal Access Token nuevo que el usuario tiene que crear a mano y cargar
