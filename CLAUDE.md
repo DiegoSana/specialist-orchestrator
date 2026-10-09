@@ -128,6 +128,20 @@ generate`, etc.) — see `specialist-be/CLAUDE.md`, `specialist-fe/CLAUDE.md`,
   out to `git` under the confined process and is expected to fail the same way; create the repo
   with plain `gh repo create <owner>/<name> --private` (no `--source`, network-only) and push
   separately with plain `git`.
+- The same snap confinement breaks `gh api ... --input <path>` for any path outside `gh`'s allowed
+  interfaces (found 2026-10-09 securing repo settings): a file under `/tmp/claude-*/...` or
+  `/var/www/...` gets "no such file or directory" from `gh` even though it demonstrably exists (`ls`
+  sees it fine) — `gh` just can't open it. Fix: pipe the JSON on stdin instead of writing a file —
+  `gh api -X PUT <path> --input - <<'EOF' ... EOF` — stdin isn't a filesystem path, so confinement
+  doesn't apply. Also found then: the branch-protection `restrictions` field (who's allowed to push
+  to a protected branch) only works on **organization**-owned repos; on personal-account repos
+  (all five sibling repos + this orchestrator are owned by `DiegoSana`, personal) the API 422s with
+  "Only organization repositories can have users and team restrictions" — omit `restrictions`
+  (`null`) and rely on `allow_force_pushes`/`allow_deletions` instead. Separately: GitHub has no way
+  to permanently disable forking (and therefore fork+PR from non-collaborators) on a **public**
+  personal-account repo — that toggle only exists for org-owned repos or private repos; the only
+  permanent fix is making the repo private, and the only partial one is the temporary (max 6
+  months, must be renewed) `PUT /repos/{owner}/{repo}/interaction-limits` with `collaborators_only`.
 - `specialist-shared` has no build-on-change propagation: a plan that touches it needs that repo's
   own build+commit+push done (and merged to `main`) **before** delegating to `specialist-admin`,
   which is the one legitimate exception to "don't push until everything's done."
